@@ -106,7 +106,9 @@ the unitarity bound is violated and $\mathcal{O}_d$ must decouple.
 **Operational implementation (CMNS):**
 Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ with $\delta W = X \cdot \mathcal{O}_d$.
 - F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring, removing it from the interacting sector.
-- $R[X] = 2 - R[\mathcal{O}_d]$. Since $R[\mathcal{O}_d] < 2/3$, we have $R[X] > 4/3$, so $X$ is irrelevant.
+- $R[X] = 2 - R[\mathcal{O}_d]$. Since $R[\mathcal{O}_d] < 2/3$, we have $R[X] > 4/3$.
+  Since $R[\mathcal{O}_d] > 0$, we also have $R[X] < 2$, so $X$ is **relevant** (available for further direct deformation)
+  but not super-relevant (cannot itself be flipped).
 - Redo $a$-maximization with the new superpotential.
 - This counts as a superpotential deformation (increments depth by 1).
 
