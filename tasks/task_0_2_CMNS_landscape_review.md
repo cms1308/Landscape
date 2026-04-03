@@ -66,16 +66,17 @@ The slope in the $(a,c)$ plane: $s = (9R^2 - 18R + 4)/(9R^2 - 18R + 6)$, ranging
 
 ### Step 3: Operator Decoupling
 
-After $a$-maximization, if any operator $\mathcal{O}_d$ has $R[\mathcal{O}_d] < 2/3$:
-- It violates unitarity and must decouple as a free field
-- Introduce flip field $X$ with $\delta W = X \cdot \mathcal{O}_d$, enforcing $R[\mathcal{O}_d] = 2/3$
-- Subtract free-field contribution from central charges. Denoting $R_d \equiv R[\mathcal{O}_d]$ (the R-charge of the decoupling operator **before** decoupling):
+After $a$-maximization, if any operator $\mathcal{O}_d$ has $R[\mathcal{O}_d] < 2/3$, it violates the unitarity bound and must decouple as a free field.
 
-$$\delta a = \frac{3}{32}\left[\frac{2}{9} - \left(3(R_d-1)^3 - (R_d-1)\right)\right]$$
+**Mechanism:** This is handled by **flipping** the offending operator. Recall what flipping does:
+- Add a gauge-singlet $X$ and superpotential coupling $\delta W = X \cdot \mathcal{O}_d$
+- The F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring
+- This **removes** $\mathcal{O}_d$ from the interacting chiral ring entirely (it does NOT "set $R[\mathcal{O}_d] = 2/3$")
+- $\mathcal{O}_d$ decouples as a free field in a separate sector
+- The flip field $X$ has $R[X] = 2 - R[\mathcal{O}_d] > 4/3$, so $X$ is irrelevant and does not introduce new relevant deformations
+- Redo $a$-maximization with the new superpotential constraint
 
-  Here $2/9$ is the free-field value of $3(R-1)^3 - (R-1)$ at $R = 2/3$, so this subtracts the interacting contribution and adds back the free-field contribution.
-
-This counts as a superpotential deformation (increments depth).
+This counts as a superpotential deformation (increments depth by 1), since we added $\delta W = X \cdot \mathcal{O}_d$.
 
 ### Step 4: Iterate
 
