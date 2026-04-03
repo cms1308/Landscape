@@ -57,6 +57,10 @@ These may set some operators to zero in the chiral ring that were nonzero before
 
 **What flipping is:** Given a GIO $\mathcal{O}$, flipping means introducing a new gauge-singlet
 chiral field $M$ and adding the superpotential coupling $\delta W = M \cdot \mathcal{O}$.
+$M$ is a **free field in the UV** with $R_{\text{UV}}[M] = 2/3$ (the free-field R-charge).
+The coupling $M \cdot \mathcal{O}$ has $R_{\text{UV}} = 2/3 + R[\mathcal{O}]$ and is relevant ($R < 2$)
+precisely when $R[\mathcal{O}] < 4/3$. At the IR fixed point, $M$ acquires an anomalous dimension
+and has $R_{\text{IR}}[M] = 2 - R_{\text{IR}}[\mathcal{O}]$.
 
 **What flipping does to the chiral ring:**
 - $M$ is an elementary field, so its F-term equation is $\partial W / \partial M = \mathcal{O} = 0$.
@@ -69,10 +73,15 @@ chiral field $M$ and adding the superpotential coupling $\delta W = M \cdot \mat
   which may generate additional chiral ring relations.
 
 **When is flipping consistent?**
-- $M$ must satisfy the unitarity bound: $R[M] = 2 - R[\mathcal{O}] \geq 2/3$, requiring $R[\mathcal{O}] \leq 4/3$.
-- At $R[\mathcal{O}] = 4/3$: $R[M] = 2/3$, so $M$ is a free field. The flip is marginally consistent but $M$ immediately decouples.
-- At $4/3 < R[\mathcal{O}] < 2$: $R[M] < 2/3$, violating unitarity for $M$. The flip is **not consistent** — such operators can only be used for direct deformation (Step 2a), not flipping.
-- Hence the condition for flippable (super-relevant) operators: $R[\mathcal{O}] < 4/3$.
+The condition $R[\mathcal{O}] < 4/3$ arises from two equivalent viewpoints:
+- **UV:** $M$ is free ($R = 2/3$), so the coupling $M \cdot \mathcal{O}$ has $R = 2/3 + R[\mathcal{O}]$.
+  For this to be a relevant deformation ($R < 2$), need $R[\mathcal{O}] < 4/3$.
+- **IR:** $R_{\text{IR}}[M] = 2 - R[\mathcal{O}]$ must satisfy unitarity ($R \geq 2/3$), requiring $R[\mathcal{O}] \leq 4/3$.
+
+Boundary and failure cases:
+- At $R[\mathcal{O}] = 4/3$: $R_{\text{IR}}[M] = 2/3$, $M$ remains free at IR. The coupling is marginal, not relevant.
+- At $4/3 < R[\mathcal{O}] < 2$: $R_{\text{IR}}[M] < 2/3$, unitarity violated. The coupling $M \cdot \mathcal{O}$ is irrelevant at UV.
+  Such operators can only be used for direct deformation (Step 2a), not flipping.
 
 **R-charge ranges after flipping** (assuming $2/3 < R[\mathcal{O}] < 4/3$ at the parent):
 - $R[M] = 2 - R[\mathcal{O}]$, so $2/3 < R[M] < 4/3$
