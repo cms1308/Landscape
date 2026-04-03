@@ -39,44 +39,80 @@ Classify:
 
 ### Step 2a: Direct Deformation
 
-For each relevant operator $\mathcal{O}$:
-- Add $\delta W = \mathcal{O}$ to the superpotential
-- Impose $R[\mathcal{O}] = 2$ as a new constraint
-- Redo $a$-maximization
+Given a fixed point with superpotential $W$, for each relevant GIO $\mathcal{O}$ with $R[\mathcal{O}] < 2$:
+- Add $\delta W = \mathcal{O}$ to the superpotential: $W \to W + \mathcal{O}$
+- The new superpotential term imposes a new constraint: $R[\mathcal{O}] = 2$
+  (since every term in $W$ must have R-charge 2)
+- This constraint is linear in the trial R-charges and eliminates one free parameter
+  from the $a$-maximization
+- Redo $a$-maximization with this additional constraint to obtain new R-charges and new $(a, c)$
+- The new constraint also breaks some flavor symmetries (those under which $\mathcal{O}$ is charged),
+  reducing the dimension of the trial R-symmetry space
 
-**Special case — single U(1):** If $\mathcal{O}$ is charged under a single U(1) flavor symmetry, the constraint $R_{\text{IR}}(\mathcal{O}) = 2$ uniquely fixes the mixing parameter: $\epsilon = (2 - R(\mathcal{O})) / J_1(\mathcal{O})$, with no optimization needed.
+**Effect on the chiral ring:** the new superpotential term generates new F-term relations
+$\partial(W + \mathcal{O})/\partial \Phi_i = 0$ for each elementary field $\Phi_i$.
+These may set some operators to zero in the chiral ring that were nonzero before.
 
 ### Step 2b: Flip Deformation
 
-For each super-relevant operator $\mathcal{O}$ with $R[\mathcal{O}] < 4/3$:
-- Introduce gauge-singlet chiral field $M$
-- Add $\delta W = M \cdot \mathcal{O}$
-- The flip field gets $R[M] = 2 - R[\mathcal{O}] > 2/3$ (healthy)
-- The F-term $\partial W / \partial M = 0$ sets $\mathcal{O} = 0$ in the chiral ring — it is **removed entirely**, not just made irrelevant
+**What flipping is:** Given a GIO $\mathcal{O}$, flipping means introducing a new gauge-singlet
+chiral field $M$ and adding the superpotential coupling $\delta W = M \cdot \mathcal{O}$.
 
-**Central charge shift from a pure flip:**
+**What flipping does to the chiral ring:**
+- $M$ is an elementary field, so its F-term equation is $\partial W / \partial M = \mathcal{O} = 0$.
+  This sets the composite operator $\mathcal{O}$ to **zero** in the chiral ring.
+  $\mathcal{O}$ is removed from the spectrum entirely — it is not an operator of the new theory.
+- The elementary fields composing $\mathcal{O}$ still exist, but their specific combination
+  forming $\mathcal{O}$ is now a chiral ring relation.
+- $M$ itself is a new operator in the chiral ring with $R[M] = 2 - R[\mathcal{O}]$.
+- F-terms of other elementary fields $\Phi_i$ gain new contributions $M \cdot \partial\mathcal{O}/\partial\Phi_i$,
+  which may generate additional chiral ring relations.
+
+**When is flipping consistent?**
+- $M$ must satisfy the unitarity bound: $R[M] = 2 - R[\mathcal{O}] \geq 2/3$, requiring $R[\mathcal{O}] \leq 4/3$.
+- At $R[\mathcal{O}] = 4/3$: $R[M] = 2/3$, so $M$ is a free field. The flip is marginally consistent but $M$ immediately decouples.
+- At $4/3 < R[\mathcal{O}] < 2$: $R[M] < 2/3$, violating unitarity for $M$. The flip is **not consistent** — such operators can only be used for direct deformation (Step 2a), not flipping.
+- Hence the condition for flippable (super-relevant) operators: $R[\mathcal{O}] < 4/3$.
+
+**R-charge ranges after flipping** (assuming $2/3 < R[\mathcal{O}] < 4/3$ at the parent):
+- $R[M] = 2 - R[\mathcal{O}]$, so $2/3 < R[M] < 4/3$
+- $M$ is itself relevant ($R[M] < 2$) and may be super-relevant ($R[M] < 4/3$),
+  generating further deformations at the next depth.
+
+**Central charges:** In general, redo $a$-maximization with the new field $M$ and new constraint.
+When $\mathcal{O}$ is neutral under all residual flavor symmetries (so the flip does not change other R-charges),
+the shift is purely from adding the singlet $M$:
 
 $$\delta a = \frac{3}{32}(1 - R[\mathcal{O}])(3R[\mathcal{O}]^2 - 6R[\mathcal{O}] + 2)$$
 
 $$\delta c = \frac{1}{32}(1 - R[\mathcal{O}])(9R[\mathcal{O}]^2 - 18R[\mathcal{O}] + 4)$$
 
-The slope in the $(a,c)$ plane: $s = (9R^2 - 18R + 4)/(9R^2 - 18R + 6)$, ranging from $\sim 5/3$ to 2 for $2/3 < R < 4/3$.
-
-**Why $R < 4/3$?** The flip field $M$ has $R[M] = 2 - R[\mathcal{O}]$. For $M$ to satisfy the unitarity bound, we need $R[M] \geq 2/3$, i.e. $R[\mathcal{O}] \leq 4/3$. If $R[\mathcal{O}] = 4/3$ exactly, $R[M] = 2/3$ and $M$ is a free field (marginal case).
+**Derivation:** $M$ contributes $\delta(\text{Tr}\,R^3) = (R[M]-1)^3 = (1-R[\mathcal{O}])^3$ and
+$\delta(\text{Tr}\,R) = (R[M]-1) = (1-R[\mathcal{O}])$ to the anomaly traces. Substituting into
+$\delta a = (3/32)(3\delta(\text{Tr}\,R^3) - \delta(\text{Tr}\,R))$ gives the formula.
+This is exact only when no other R-charges change; otherwise, redo full $a$-maximization.
 
 ### Step 3: Operator Decoupling
 
-After $a$-maximization, if any operator $\mathcal{O}_d$ has $R[\mathcal{O}_d] < 2/3$, it violates the unitarity bound and must decouple as a free field.
+After $a$-maximization, if any GIO $\mathcal{O}_d$ has $R[\mathcal{O}_d] < 2/3$,
+the unitarity bound is violated and $\mathcal{O}_d$ must decouple.
 
-**Mechanism:** This is handled by **flipping** the offending operator. Recall what flipping does:
-- Add a gauge-singlet $X$ and superpotential coupling $\delta W = X \cdot \mathcal{O}_d$
-- The F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring
-- This **removes** $\mathcal{O}_d$ from the interacting chiral ring entirely (it does NOT "set $R[\mathcal{O}_d] = 2/3$")
-- $\mathcal{O}_d$ decouples as a free field in a separate sector
-- The flip field $X$ has $R[X] = 2 - R[\mathcal{O}_d] > 4/3$, so $X$ is irrelevant and does not introduce new relevant deformations
-- Redo $a$-maximization with the new superpotential constraint
+**Physical picture:**
+- An accidental $U(1)$ symmetry emerges in the IR under which $\mathcal{O}_d$ is charged.
+- The true superconformal R-symmetry mixes with this accidental $U(1)$ to correct $R[\mathcal{O}_d]$ to exactly $2/3$.
+- $\mathcal{O}_d$ becomes a free field ($\Delta = 1$) decoupled from the interacting sector.
+- The remaining interacting sector has its own (corrected) R-charges and central charges.
 
-This counts as a superpotential deformation (increments depth by 1), since we added $\delta W = X \cdot \mathcal{O}_d$.
+**Operational implementation (CMNS):**
+Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ with $\delta W = X \cdot \mathcal{O}_d$.
+- F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring, removing it from the interacting sector.
+- $R[X] = 2 - R[\mathcal{O}_d]$. Since $R[\mathcal{O}_d] < 2/3$, we have $R[X] > 4/3$, so $X$ is irrelevant.
+- Redo $a$-maximization with the new superpotential.
+- This counts as a superpotential deformation (increments depth by 1).
+
+**Note on the `Nf=2N.nb` implementation:** the code does not automatically flip decoupled operators.
+Instead, it marks such theories as `"operator decoupled"` and does not process them further.
+This is a simplification — in principle, one should flip and continue, as CMNS does.
 
 ### Step 4: Iterate
 
