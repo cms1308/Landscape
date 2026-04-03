@@ -110,7 +110,7 @@ Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ wit
   Since $R[\mathcal{O}_d] > 0$, we also have $R[X] < 2$, so $X$ is **relevant** (available for further direct deformation)
   but not super-relevant (cannot itself be flipped).
 - Redo $a$-maximization with the new superpotential.
-- This counts as a superpotential deformation (increments depth by 1).
+- In CMNS, this does **not** count as increasing depth (it is a consistency correction, not a chosen deformation).
 
 **Our project:** if any operator decouples ($R < 2/3$), we mark the theory as `"operator decoupled"` and **stop** — we do not flip or continue iterating from that theory. This matches the `Nf=2N.nb` implementation.
 
