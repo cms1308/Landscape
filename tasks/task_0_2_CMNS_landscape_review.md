@@ -19,7 +19,7 @@ Starting points: Lagrangian gauge theories at conformal fixed points with W = 0.
 | 5 | SO(5) | 1 antisymmetric (**10**) + 2 vectors (**5**) |
 | 6 | SO(5) | 1 traceless symmetric (**14**) + 1 vector (**5**) |
 | 7 | SO(5) | 1 traceless symmetric (**14**) + 2 vectors (**5**) |
-| 8 | Sp(2) | 1 traceless antisymmetric (**14**) + 2 fundamentals (**4**) |
+| 8 | Sp(2) | 1 irrep [0,2] (**14**) + 2 fundamentals (**4**) |
 | 9 | Sp(2) | 1 adjoint (**10**) + 2 fundamentals (**4**) |
 | 10 | G_2 | 1 adjoint (**14**) + 1 fundamental (**7**) |
 
