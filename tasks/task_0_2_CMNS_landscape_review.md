@@ -96,13 +96,12 @@ the unitarity bound is violated and $\mathcal{O}_d$ must decouple.
 - $\mathcal{O}_d$ becomes a free field ($\Delta = 1$) decoupled from the interacting sector.
 - The remaining interacting sector has its own (corrected) R-charges and central charges.
 
-**Operational implementation (CMNS):**
-Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ (free field at UV, $R_{\text{UV}}[X] = 2/3$) with $\delta W = X \cdot \mathcal{O}_d$.
+**Operational implementation:**
+Decoupling can be implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ (free field at UV, $R_{\text{UV}}[X] = 2/3$) with $\delta W = X \cdot \mathcal{O}_d$.
 - The coupling $X \cdot \mathcal{O}_d$ has $R_{\text{UV}} = 2/3 + R[\mathcal{O}_d] < 4/3 < 2$, so it is relevant.
 - F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring, removing it from the interacting sector.
-- At the IR: $R_{\text{IR}}[X] = 2 - R[\mathcal{O}_d]$, with $4/3 < R[X] < 2$ (relevant but not super-relevant).
 - Redo $a$-maximization with the new superpotential.
-- In CMNS, this does **not** count as increasing depth (it is a consistency correction, not a chosen deformation).
+- This does **not** count as increasing depth (it is a consistency correction, not a chosen deformation).
 
 **Our project:** if any operator decouples ($R < 2/3$), we mark the theory as `"operator decoupled"` and **stop** — we do not flip or continue iterating from that theory. This matches the `Nf=2N.nb` implementation.
 
