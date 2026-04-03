@@ -72,22 +72,6 @@ and has $R_{\text{IR}}[M] = 2 - R_{\text{IR}}[\mathcal{O}]$.
 - F-terms of other elementary fields $\Phi_i$ gain new contributions $M \cdot \partial\mathcal{O}/\partial\Phi_i$,
   which may generate additional chiral ring relations.
 
-**When is flipping consistent?**
-The condition $R[\mathcal{O}] < 4/3$ arises from two equivalent viewpoints:
-- **UV:** $M$ is free ($R = 2/3$), so the coupling $M \cdot \mathcal{O}$ has $R = 2/3 + R[\mathcal{O}]$.
-  For this to be a relevant deformation ($R < 2$), need $R[\mathcal{O}] < 4/3$.
-- **IR:** $R_{\text{IR}}[M] = 2 - R[\mathcal{O}]$ must satisfy unitarity ($R \geq 2/3$), requiring $R[\mathcal{O}] \leq 4/3$.
-
-Boundary and failure cases:
-- At $R[\mathcal{O}] = 4/3$: $R_{\text{IR}}[M] = 2/3$, $M$ remains free at IR. The coupling is marginal, not relevant.
-- At $4/3 < R[\mathcal{O}] < 2$: $R_{\text{IR}}[M] < 2/3$, unitarity violated. The coupling $M \cdot \mathcal{O}$ is irrelevant at UV.
-  Such operators can only be used for direct deformation (Step 2a), not flipping.
-
-**R-charge ranges after flipping** (assuming $2/3 < R[\mathcal{O}] < 4/3$ at the parent):
-- $R[M] = 2 - R[\mathcal{O}]$, so $2/3 < R[M] < 4/3$
-- $M$ is itself relevant ($R[M] < 2$) and may be super-relevant ($R[M] < 4/3$),
-  generating further deformations at the next depth.
-
 **Central charges:** In general, redo $a$-maximization with the new field $M$ and new constraint.
 When $\mathcal{O}$ is neutral under all residual flavor symmetries (so the flip does not change other R-charges),
 the shift is purely from adding the singlet $M$:
