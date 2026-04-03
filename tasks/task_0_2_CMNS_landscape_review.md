@@ -112,9 +112,7 @@ Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ wit
 - Redo $a$-maximization with the new superpotential.
 - This counts as a superpotential deformation (increments depth by 1).
 
-**Note on the `Nf=2N.nb` implementation:** the code does not automatically flip decoupled operators.
-Instead, it marks such theories as `"operator decoupled"` and does not process them further.
-This is a simplification — in principle, one should flip and continue, as CMNS does.
+**Our project:** if any operator decouples ($R < 2/3$), we mark the theory as `"operator decoupled"` and **stop** — we do not flip or continue iterating from that theory. This matches the `Nf=2N.nb` implementation.
 
 ### Step 4: Iterate
 
