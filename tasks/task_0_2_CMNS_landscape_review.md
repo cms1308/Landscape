@@ -52,7 +52,7 @@ For each super-relevant operator $\mathcal{O}$ with $R[\mathcal{O}] < 4/3$:
 - Introduce gauge-singlet chiral field $M$
 - Add $\delta W = M \cdot \mathcal{O}$
 - The flip field gets $R[M] = 2 - R[\mathcal{O}] > 2/3$ (healthy)
-- The original operator $\mathcal{O}$ becomes irrelevant ($R > 2$) in the new theory
+- The F-term $\partial W / \partial M = 0$ sets $\mathcal{O} = 0$ in the chiral ring — it is **removed entirely**, not just made irrelevant
 
 **Central charge shift from a pure flip:**
 
