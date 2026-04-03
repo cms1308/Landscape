@@ -1,0 +1,476 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\title{Task List: Classification of 4d $\mathcal{N}=1$ SCFT Landscape}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent
+\textbf{Goal:} Systematically classify 4d $\mathcal{N}=1$ supersymmetric gauge theories with simple gauge group that flow to non-trivial interacting IR fixed points, by enumerating all relevant deformations (including flippings) up to five superpotential terms.
+This project generalizes~\cite{CMNS} to all simple gauge groups.
+
+\bigskip
+
+%======================================================================
+\section{Warm-Up: Review and Conventions}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{0.\arabic*}]
+
+\item \textbf{Review $a$-maximization~\cite{IW}.} \\
+  The superconformal $R$-symmetry in a 4d $\mathcal{N}=1$ SCFT is uniquely determined by maximizing the trial central charge
+  \begin{equation}\label{eq:atrial}
+    a_{\mathrm{trial}}(R_t) = \frac{3}{32}\!\left(3\,\mathrm{Tr}\,R_t^3 - \mathrm{Tr}\,R_t\right),
+  \end{equation}
+  where $R_t = R_0 + \sum_I s_I F_I$ is a general trial $R$-symmetry mixing with abelian flavor charges $F_I$.
+  Key results:
+  \begin{itemize}
+    \item Stationarity: $9\,\mathrm{Tr}(R^2 F_I) = \mathrm{Tr}(F_I)$ for all flavor generators $F_I$.
+    \item Local maximum: the matrix $\mathrm{Tr}(R\,F_I\,F_K)$ has all negative eigenvalues.
+    \item Central charges: $a = \frac{3}{32}(3\,\mathrm{Tr}\,R^3 - \mathrm{Tr}\,R)$, \; $c = \frac{1}{32}(9\,\mathrm{Tr}\,R^3 - 5\,\mathrm{Tr}\,R)$.
+    \item $R$-charges (hence $\Delta = \frac{3}{2}R$ for chiral primaries) are algebraic numbers.
+  \end{itemize}
+
+\item \textbf{Review the landscape methodology~\cite{CMNS}.} \\
+  The algorithm of~\cite{CMNS}:
+  \begin{enumerate}[label=(\roman*)]
+    \item Start from seed theories (Lagrangian gauge theories at conformal fixed points with $W=0$).
+    \item At each fixed point, enumerate gauge-invariant operators (GIOs).
+    \item Classify deformations: \emph{relevant} ($R[\mathcal{O}] < 2$) and \emph{super-relevant} ($R[\mathcal{O}] < \tfrac{4}{3}$, candidates for flipping).
+    \item Deform by a single superpotential term $\delta W = \mathcal{O}$ or flip $\delta W = M\cdot\mathcal{O}$, perform $a$-maximization at the new fixed point.
+    \item Iterate until no new fixed points are generated.
+  \end{enumerate}
+  \cite{CMNS} treated rank-1 and rank-2 groups with adjoint/small matter, finding 7,346 fixed points.
+  Our project generalizes this to \emph{all} simple gauge groups with \emph{all} allowed matter representations.
+
+\item \textbf{Set notation and conventions (following~\cite{CMNS}).} \\
+  We adopt the following conventions throughout:
+  \begin{itemize}
+    \item \textbf{Gauge group:} $G$ a simple Lie group with dual Coxeter number $h^\vee$ and Dynkin index $T(R)$ for representation~$R$ (normalized $T(\mathrm{fund}) = \tfrac{1}{2}$ for $\mathrm{SU}(N)$). Dimension of $R$: $d(R) = |R|$.
+    \item \textbf{Matter content:} chiral multiplets $\Phi_i^{(a)}$ ($a = 1,\ldots, N_i$) in representation $R_i$ with $R$-charge $r_i$. Singlet (flip) fields: $X_j$, $M_j$.
+    \item \textbf{ABJ anomaly cancellation:}
+    \begin{equation}\label{eq:ABJ}
+      T(\mathrm{adj}) + \sum_i N_i\,(r_i - 1)\,T(R_i) = 0\,.
+    \end{equation}
+    \item \textbf{Superpotential constraint:} $R[W_k] = 2$ for each term $W_k$ in the superpotential.
+    \item \textbf{Central charges:}
+    \begin{align}
+      \mathrm{Tr}\,R^3 &= |G| + \sum_i N_i\,(r_i-1)^3\,|R_i|\,, \\
+      \mathrm{Tr}\,R &= |G| + \sum_i N_i\,(r_i-1)\,|R_i|\,,
+    \end{align}
+    where the gaugino contributes $R=1$.
+    \item \textbf{Scaling dimension:} $\Delta[\mathcal{O}] = \frac{3}{2}\,R[\mathcal{O}]$ for chiral primaries.
+    \item \textbf{Unitarity bound:} $R[\mathcal{O}] \geq \frac{2}{3}$ for all gauge-invariant chiral primaries ($\Delta \geq 1$).
+    \item \textbf{Hofman--Maldacena bound:} $\frac{1}{2} \leq \frac{a}{c} \leq \frac{3}{2}$.
+    \item \textbf{Relevant deformation:} GIO $\mathcal{O}$ with $R[\mathcal{O}] < 2$.
+    \item \textbf{Super-relevant / flippable:} GIO $\mathcal{O}$ with $R[\mathcal{O}] < \frac{4}{3}$ (so the flip field $M$ has $R[M] = 2 - R[\mathcal{O}] > \frac{2}{3}$).
+    \item \textbf{Depth:} the number of superpotential terms (``length'' in the Mathematica code).
+  \end{itemize}
+
+\item \textbf{Read and understand the reference Mathematica code (\texttt{Nf=2N.nb}).} \\
+  The notebook implements the full pipeline for $\mathrm{SU}(N_c)$ with matter in
+  representations $\{X, M, q, \bar{q}, \phi, S, \bar{S}, A, \bar{A}\}$
+  (singlets, fundamentals, adjoint, symmetric, antisymmetric).
+  Key components to adopt:
+  \begin{itemize}
+    \item \texttt{FindCharges[nc, n, w]}: given $N_c$, multiplicity vector $n = (N_X, N_M, N_q, N_{\bar{q}}, N_\phi, N_S, N_{\bar{S}}, N_A, N_{\bar{A}})$, and superpotential term list $w$, performs:
+    \begin{enumerate}[label=\arabic*.]
+      \item ABJ anomaly $\to$ eliminates one $R$-charge.
+      \item $R[W_k] = 2$ constraints $\to$ eliminates further variables (prioritizing singlets $X$, $M$).
+      \item Symmetry identification: fields appearing equivalently in $W$ (via graph isomorphism \texttt{toGlobalGraph}) are assigned equal $R$-charges.
+      \item Maximizes $a_{\mathrm{trial}}$ over remaining free variables: exact \texttt{Solve} first, falls back to \texttt{NSolve} with high precision.
+      \item Selects the local maximum via negative-definite Hessian check.
+    \end{enumerate}
+    \item \textbf{Gauge-invariant operators:} constructed as products of matter fields (mesons $= q_i q_j$ for $\mathrm{SU}(2)$, and quartic $= M_i M_j$ products), combined with flip fields. The \textbf{chiral ring} is reduced using \texttt{GroebnerBasis} of $F$-term relations $\partial W / \partial \Phi_i = 0$, and operators are reduced via \texttt{PolynomialReduce}.
+    \item \textbf{Equivalence check:} theories are identified up to field relabeling via a graph isomorphism of the superpotential structure (\texttt{toGlobalGraph}).
+    \item \textbf{Consistency checks:} $R$-charges positive and $\leq 2$; central charges $a,c > 0$; $\tfrac{1}{2} < a/c < \tfrac{3}{2}$; no operators below unitarity bound.
+    \item \textbf{Iterative structure:} \texttt{length0} $\to$ \texttt{length1} $\to$ \texttt{length2} $\to \cdots$ $\to$ \texttt{length5}. At each depth, deformations and flips of consistent theories at the previous depth are generated, deduplicated, and processed.
+    \item \textbf{Storage:} results stored in SQLite database via \texttt{SafeUpsert}.
+  \end{itemize}
+  \textbf{Limitation for generalization:} GIO construction (\texttt{freeGIO}) is hard-coded for specific
+  $\mathrm{SU}(N_c)$ matter (mesons from pairs of fundamentals, quartic products).
+  This must be replaced by the automated Hilbert series approach (Task~3.2) for general gauge groups.
+
+\item \textbf{Read and understand the Hilbert series code (\texttt{hilbert.py}).} \\
+  The Python script computes the Hilbert series for arbitrary gauge groups and matter representations
+  using the \texttt{LiE} computer algebra system for Lie group computations, with parallel processing.
+  Key components:
+  \begin{itemize}
+    \item \textbf{Input specification:}
+    \begin{itemize}
+      \item Gauge group: Lie type + rank (e.g.\ \texttt{group(rank)} returns \texttt{"C4"} for $\mathrm{Sp}(8)$).
+      \item Matter: representations as Dynkin label vectors (e.g.\ $[1,0,0,0]$ = fundamental of $C_4$).
+      \item Multiplicities: number of copies of each representation.
+      \item Order: truncation order for the series expansion.
+    \end{itemize}
+    \item \textbf{Plethystic exponential (PE) via LiE} (\texttt{PE} function):
+    for each partition of the order, \texttt{LiE} computes the gauge-invariant content
+    by projecting symmetric tensor products onto the trivial representation using \texttt{tensor}, \texttt{sym\_tensor}, \texttt{p\_tensor}, and the Frobenius formula.
+    Partitions are processed \emph{in parallel} via \texttt{multiprocessing.Pool.starmap}.
+    \item \textbf{Plethystic logarithm (PL) via Mathematica} (\texttt{PL}/\texttt{PL2} functions):
+    applies the M\"obius inversion $\mathrm{PL}(f) = \sum_{k=1}^{K} \frac{\mu(k)}{k}\log f(z^k)$
+    to extract the generators (positive terms) and relations (negative terms) of the chiral ring.
+    \item \textbf{Two modes:}
+    \begin{itemize}
+      \item \texttt{run} / \texttt{PL}: uses \texttt{matter} with per-copy fugacities $z_{i,a}$ (distinguishes individual copies).
+      \item \texttt{run2} / \texttt{PL2}: uses \texttt{matters2} with per-representation fugacities $z_i$ (identifies copies).
+    \end{itemize}
+  \end{itemize}
+  \textbf{Limitations requiring generalization:}
+  \begin{itemize}
+    \item \texttt{group(rank)} is hard-coded to return type $C_r$ only.
+      Must accept arbitrary Lie type: $A_r$, $B_r$, $C_r$, $D_r$, $G_2$, $F_4$, $E_6$, $E_7$, $E_8$.
+    \item \texttt{matter(rank, num)} has only 9 fixed representation slots
+      $\{X, M, q, \bar{q}, \mathrm{adj}, S, \bar{S}, A, \bar{A}\}$ with hard-coded Dynkin labels for type $C$.
+      Must accept \emph{arbitrary} representations specified by their Dynkin labels.
+    \item The script does not impose $F$-term relations. This must be combined with the
+      \texttt{GroebnerBasis} reduction from \texttt{Nf=2N.nb}.
+  \end{itemize}
+
+\end{enumerate}
+
+%======================================================================
+\section{Group Theory Data}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{1.\arabic*}]
+
+\item \textbf{Enumerate simple gauge groups by rank.} \\
+  For a given rank $r$, list all simple Lie algebras:
+  $A_r = \mathrm{SU}(r+1)$, $B_r = \mathrm{SO}(2r+1)$, $C_r = \mathrm{Sp}(2r)$, $D_r = \mathrm{SO}(2r)$,
+  and the exceptionals $G_2$, $F_4$, $E_6$, $E_7$, $E_8$.
+
+\item \textbf{Tabulate representation data for each gauge group.} \\
+  For each simple group $G$, compile:
+  \begin{itemize}
+    \item Dimension $|R|$, Dynkin index $T(R)$, quadratic Casimir $C_2(R)$.
+    \item Cubic anomaly coefficient $A(R)$.
+    \item Reality property: real, pseudo-real, or complex.
+    \item Dual Coxeter number $h^\vee$ and $T(\mathrm{adj})$.
+  \end{itemize}
+  \textbf{Representation specification:} each representation is specified by its \textbf{Dynkin labels}
+  $[\lambda_1, \ldots, \lambda_r]$ (highest weight in the Dynkin basis), where $r = \mathrm{rank}(G)$.
+  This is the format used by \texttt{LiE} and by \texttt{hilbert.py}.
+  Examples:
+  \begin{itemize}
+    \item $A_r = \mathrm{SU}(r+1)$: fund $= [1,0,\ldots,0]$, $\overline{\text{fund}} = [0,\ldots,0,1]$, adj $= [1,0,\ldots,0,1]$, sym $= [2,0,\ldots,0]$, anti $= [0,1,0,\ldots,0]$.
+    \item $C_r = \mathrm{Sp}(2r)$: fund $= [1,0,\ldots,0]$, adj $= [2,0,\ldots,0]$ (for $r=1$) or $[0,1,0,\ldots,0]$ (traceless antisymmetric for $r\geq 2$).
+    \item Exceptionals: all representations enumerable by \texttt{LiE}'s \texttt{dom\_chars} function.
+  \end{itemize}
+  Restrict to representations up to a chosen Dynkin index cutoff $T(R) \leq T_{\max}$.
+  All representation data ($|R|$, $T(R)$, $A(R)$, reality) can be computed by \texttt{LiE}
+  from the Dynkin labels, eliminating the need for hand-coded tables.
+
+\item \textbf{No hand-coded GIO construction: use the Hilbert series instead.} \\
+  Unlike \texttt{Nf=2N.nb}, which hard-codes GIOs as mesons/quartic products for specific
+  $\mathrm{SU}(N_c)$ matter (\texttt{freeGIO}), we use the \textbf{plethystic logarithm}
+  of the Hilbert series (computed by \texttt{hilbert.py} via \texttt{LiE}) to
+  \emph{automatically} extract the generators and relations of the chiral ring for
+  \emph{any} gauge group and matter content.
+  \begin{itemize}
+    \item \textbf{Generators} (positive terms in PL): these are the independent GIOs.
+    \item \textbf{Relations} (negative terms in PL): algebraic relations among generators.
+  \end{itemize}
+  This approach is manifestly group-independent and requires no case-by-case invariant tensor analysis.
+  After obtaining the generators, $F$-term relations $\partial W/\partial \Phi_i = 0$ are imposed
+  via \texttt{GroebnerBasis}/\texttt{PolynomialReduce} (as in \texttt{Nf=2N.nb}) to reduce the chiral ring.
+
+\end{enumerate}
+
+%======================================================================
+\section{Seed Theory Enumeration}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{2.\arabic*}]
+
+\item \textbf{Asymptotic freedom condition.} \\
+  Impose
+  \begin{equation}
+    b_0 = 3\, T(\mathrm{adj}) - \sum_i N_i \, T(R_i) > 0\,.
+  \end{equation}
+  Enumerate all combinations $\{(R_i, N_i)\}$ satisfying $b_0 > 0$.
+
+\item \textbf{Anomaly cancellation.} \\
+  Impose $\sum_i N_i \, A(R_i) = 0$.
+  For real/pseudo-real representations, $A(R) = 0$ automatically.
+  For complex representations, pair with conjugates or cancel among distinct representations.
+
+\item \textbf{Filter for interacting IR fixed points (seed theories).} \\
+  For each asymptotically free, anomaly-free matter content with $W = 0$:
+  \begin{itemize}
+    \item Perform $a$-maximization (following the \texttt{FindCharges} algorithm with $w = \{\}$).
+    \item Check $a, c > 0$ and $\tfrac{1}{2} \leq a/c \leq \tfrac{3}{2}$.
+    \item Verify unitarity: $R[\mathcal{O}] \geq \tfrac{2}{3}$ for all GIOs (using the Hilbert series, see Task~3.2).
+    \item Discard IR-free theories.
+  \end{itemize}
+
+\item \textbf{Catalog seed theories.} \\
+  Store each seed theory with: gauge group, matter content vector $n$, $R$-charges, central charges $(a, c)$,
+  list of relevant and super-relevant GIOs. Export as \texttt{length0} data (cf.\ \texttt{Nf=2N.nb}).
+
+\end{enumerate}
+
+%======================================================================
+\section{Fixed-Point Analysis Tools}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{3.\arabic*}]
+
+\item \textbf{Implement $a$-maximization.} \\
+  Generalize \texttt{FindCharges} to arbitrary simple gauge groups.
+  Given gauge group $G$, multiplicity vector $n$, and superpotential list $w$:
+  \begin{enumerate}[label=\arabic*.]
+    \item Impose ABJ anomaly~\eqref{eq:ABJ} $\to$ eliminate one $R$-charge variable.
+    \item Impose $R[W_k] = 2$ for each superpotential term $\to$ eliminate further variables (prioritize singlet fields $X$, $M$).
+    \item Identify fields related by symmetry via \texttt{toGlobalGraph} $\to$ equate their $R$-charges.
+    \item Maximize $a_{\mathrm{trial}}$~\eqref{eq:atrial} over remaining independent variables.
+      Use exact symbolic \texttt{Solve}; fall back to \texttt{NSolve} with $\texttt{WorkingPrecision} \to 50$.
+    \item Select the local maximum by checking negative definiteness of the Hessian.
+    \item Verify: all $R$-charges real; $a, c > 0$; Hofman--Maldacena bound satisfied.
+  \end{enumerate}
+
+\item \textbf{Enumerate gauge-invariant operators via the Hilbert series.} \\
+  Instead of computing the full superconformal index (which is computationally prohibitive for
+  general gauge groups) or hand-coding GIOs (which is group-specific), we compute the
+  \textbf{Hilbert series} of the chiral ring and extract generators via the
+  \textbf{plethystic logarithm}, using the pipeline established in \texttt{hilbert.py}.
+
+  \textbf{Step 1: Plethystic exponential (PE) via LiE.} \\
+  For gauge group $G$ (specified as Lie type + rank, e.g.\ \texttt{A4}, \texttt{B3}, \texttt{G2}) and
+  matter representations $R_i$ (specified as Dynkin labels) with multiplicities $N_i$,
+  compute the PE:
+  \begin{equation}
+    \mathrm{PE}\!\left[\sum_i N_i\, z_i\, \chi_{R_i}\right]
+    = \exp\!\left(\sum_{k=1}^{\infty} \frac{1}{k}\sum_i N_i\, z_i^k\, \chi_{R_i}(g^k)\right),
+  \end{equation}
+  projected onto the gauge singlet sector via integration over $G$.
+  In practice, \texttt{LiE} computes this order by order in fugacities $z_i$ using
+  \texttt{sym\_tensor}, \texttt{p\_tensor}, and the Frobenius formula for plethysms,
+  truncated at a chosen order.
+  This step is \textbf{parallelized} over partitions via \texttt{multiprocessing}.
+
+  \textbf{Step 2: Plethystic logarithm (PL) via Mathematica.} \\
+  Apply the M\"obius inversion:
+  \begin{equation}
+    \mathrm{PL}[H(z)] = \sum_{k=1}^{K} \frac{\mu(k)}{k}\,\log H(z^k)\,,
+  \end{equation}
+  expanded as a power series in $z_i$.
+  Positive terms = \textbf{generators} of the chiral ring (the independent GIOs).
+  Negative terms = \textbf{relations} among generators.
+  This automatically produces the GIO list for \emph{any} gauge group, replacing
+  the hard-coded \texttt{freeGIO} of \texttt{Nf=2N.nb}.
+
+  \textbf{Step 3: $F$-term reduction.} \\
+  When $W \neq 0$, impose $\partial W / \partial \Phi_i = 0$ and reduce the chiral ring
+  using \texttt{GroebnerBasis} and \texttt{PolynomialReduce} (as in \texttt{Nf=2N.nb}).
+  Operators that vanish modulo $F$-terms are removed.
+
+  \textbf{Generalization of \texttt{hilbert.py} required:}
+  \begin{itemize}
+    \item \texttt{group(rank)} $\to$ \texttt{group(lie\_type, rank)}: accept $A$, $B$, $C$, $D$, $G_2$, $F_4$, $E_6$, $E_7$, $E_8$.
+    \item \texttt{matter(rank, num)} $\to$ \texttt{matter(lie\_type, rank, dynkin\_labels\_list)}:
+      accept an arbitrary list of representations as Dynkin label vectors,
+      not restricted to the 9 hard-coded slots.
+    \item The multiplicity handling (\texttt{num}/\texttt{num2}) and fugacity assignment
+      (\texttt{PL}/\texttt{PL2}) generalize straightforwardly.
+  \end{itemize}
+
+\item \textbf{Identify relevant and super-relevant deformations.} \\
+  From the reduced chiral ring operators:
+  \begin{itemize}
+    \item \textbf{Relevant:} $R[\mathcal{O}] < 2$ \; ($\Delta[\mathcal{O}] < 3$). These can appear as $\delta W = \mathcal{O}$.
+    \item \textbf{Super-relevant (flippable):} $R[\mathcal{O}] < \frac{4}{3}$. These can be flipped: $\delta W = M \cdot \mathcal{O}$, with $R[M] = 2 - R[\mathcal{O}] > \frac{2}{3}$.
+  \end{itemize}
+  Deduplicate using \texttt{toGlobalGraph}: operators related by flavor symmetry permutations
+  yield equivalent deformations.
+
+\item \textbf{Handle operator decoupling.} \\
+  If any GIO $\mathcal{O}$ has $R[\mathcal{O}] < \frac{2}{3}$, it violates the unitarity bound and must decouple
+  as a free field. Following~\cite{CMNS}:
+  \begin{itemize}
+    \item Introduce a flip field $X$ with $\delta W = X \cdot \mathcal{O}$, enforcing $R[\mathcal{O}] = \frac{2}{3}$.
+    \item Subtract the free-field contribution from $a$ and $c$.
+    \item This counts as a superpotential deformation (increments depth by 1).
+  \end{itemize}
+
+\item \textbf{Limitations: emergent symmetries are not visible.} \\
+  Since we use the Hilbert series rather than the full superconformal index,
+  we \emph{cannot} detect:
+  \begin{itemize}
+    \item Emergent (accidental) global symmetries that are not manifest in the UV Lagrangian.
+    \item Enhanced $\mathcal{N} = 2$ or $\mathcal{N} = 3$ supersymmetry (which requires index-level data such as the coefficient of $t^7(y + 1/y)$~\cite{CMNS}).
+    \item Higher-spin conserved currents signaling a free theory.
+  \end{itemize}
+  These require the superconformal index and are left for future refinement.
+
+\end{enumerate}
+
+%======================================================================
+\section{Deformation Procedure}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{4.\arabic*}]
+
+\item \textbf{Direct deformation.} \\
+  Given a consistent fixed point $\mathcal{T}_n$ at depth $n$, for each inequivalent relevant GIO $\mathcal{O}$ (from Task~3.3):
+  \begin{itemize}
+    \item Construct the deformed theory: same gauge group and matter, superpotential $W_{n+1} = W_n + \mathcal{O}$.
+    \item Run $a$-maximization (Task~3.1) with the new constraint $R[\mathcal{O}] = 2$.
+  \end{itemize}
+
+\item \textbf{Flip deformation.} \\
+  For each inequivalent super-relevant GIO $\mathcal{O}$ with $R[\mathcal{O}] < \frac{4}{3}$:
+  \begin{itemize}
+    \item Add a gauge-singlet $M$ to the matter content: $n \to n + \delta_M$.
+    \item Construct the deformed theory with $W_{n+1} = W_n + M \cdot \mathcal{O}$.
+    \item Run $a$-maximization with $R[M \cdot \mathcal{O}] = 2$.
+    \item The flip field gets $R[M] = 2 - R[\mathcal{O}]$.
+  \end{itemize}
+  As a cross-check, the central charge shift from a pure flip is~\cite{CMNS}:
+  \begin{equation}
+    \delta a = \frac{3}{32}\!\left[(1 - R[\mathcal{O}])(3R[\mathcal{O}]^2 - 6R[\mathcal{O}] + 2)\right].
+  \end{equation}
+
+\item \textbf{Consistency checks at each new fixed point.} \\
+  After each deformation, verify:
+  \begin{itemize}
+    \item All $R$-charges are real.
+    \item $R[\Phi_i] > 0$ and $R[\Phi_i] \neq 2$ for all matter fields.
+    \item $a, c > 0$.
+    \item Hofman--Maldacena: $\tfrac{1}{2} \leq a/c \leq \tfrac{3}{2}$.
+    \item Unitarity: $R[\mathcal{O}] \geq \frac{2}{3}$ for all GIOs in the reduced chiral ring. If violated, trigger decoupling (Task~3.4).
+    \item $a$-theorem: $a_{\mathrm{child}} < a_{\mathrm{parent}}$ (verified numerically).
+  \end{itemize}
+  Theories failing any check are marked with the failure reason (as in \texttt{FindCharges}: ``non-positive R-charges'', ``operator decoupled'', ``imaginary central charges'', ``Hofman--Maldacena bound violated'', etc.).
+
+\item \textbf{Identify equivalent theories.} \\
+  Before processing a candidate theory, check if it is equivalent to an already-cataloged fixed point:
+  \begin{itemize}
+    \item \textbf{Graph isomorphism (primary):} convert superpotential + matter to a bipartite graph via \texttt{toGlobalGraph} and check isomorphism. This is the method used in \texttt{Nf=2N.nb} and is fast.
+    \item \textbf{Invariant matching (secondary):} if graphs differ but $(a, c)$ and the sorted list of $R$-charges agree, flag for manual inspection.
+  \end{itemize}
+  Deduplicate at each depth \emph{before} running $a$-maximization (to save computation), following the \texttt{DeleteDuplicatesBy[..., toGlobalGraph]} pattern.
+
+\end{enumerate}
+
+%======================================================================
+\section{Iterative Tree Construction}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{5.\arabic*}]
+
+\item \textbf{Build the deformation tree depth by depth.} \\
+  Following the structure of \texttt{Nf=2N.nb}:
+  \begin{enumerate}[label=(\alph*)]
+    \item \textbf{Depth 0 (seed):} compute \texttt{length0} = seed theories with $W = 0$. Export to \texttt{length0.wxf} / database.
+    \item \textbf{Depth $n \to n+1$ ($n = 0,1,2,3,4$):}
+    \begin{enumerate}[label=\roman*.]
+      \item From all consistent theories at depth $n$, collect \texttt{inequiv\_relevant} and \texttt{inequiv\_flip} operator lists.
+      \item Generate candidate theories: for each relevant op, create $(n_{\mathrm{new}}, w_{\mathrm{new}})$; for each flip op, create $(n_{\mathrm{new}} + \delta_M, w_{\mathrm{new}})$.
+      \item Deduplicate candidates via \texttt{toGlobalGraph}.
+      \item Run $a$-maximization on each unique candidate (\texttt{workerFunction}).
+      \item Store results as \texttt{length\{n+1\}}.
+      \item Accumulate: $\texttt{total} = \texttt{total} \cup \texttt{length\{n+1\}}$.
+    \end{enumerate}
+    \item \textbf{Stop at depth 5.}
+  \end{enumerate}
+
+\item \textbf{Pruning and termination.} \\
+  A branch terminates if:
+  \begin{itemize}
+    \item The theory fails consistency checks (non-positive $R$-charges, imaginary central charges, $a$-maximization timeout, no local maximum).
+    \item The theory is equivalent to an already-cataloged fixed point.
+    \item Depth 5 is reached.
+    \item The theory has no relevant or super-relevant operators (terminal fixed point).
+  \end{itemize}
+
+\item \textbf{Track the RG flow graph.} \\
+  For each theory, store the parent theory and the deformation operator that triggered the flow.
+  The full dataset encodes a directed graph:
+  $\mathcal{T}_n \xrightarrow{\mathcal{O}} \mathcal{T}_{n+1}$.
+
+\end{enumerate}
+
+%======================================================================
+\section{Database and Output}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{6.\arabic*}]
+
+\item \textbf{Database schema (SQLite, following \texttt{Nf=2N.nb}).} \\
+  For each fixed point, store:
+  \begin{itemize}
+    \item \texttt{theory}: gauge group identifier (e.g.\ ``SU2\_8q'', ``G2\_7f'').
+    \item \texttt{n}: matter multiplicity vector.
+    \item \texttt{w}: superpotential term list (as strings).
+    \item \texttt{consistency}: status (``consistent'', ``non-positive R-charges'', ``operator decoupled'', etc.).
+    \item \texttt{method}: ``Exactly solved'' or ``Numerically solved''.
+    \item \texttt{a}, \texttt{c}: central charges (numerical, high precision).
+    \item \texttt{rational}: exact rational form of $a$, $c$, and $R$-charges when available.
+    \item $R$-charges: for each field (keyed by field name).
+    \item \texttt{global}: flavor charge vectors under residual $U(1)$ symmetries.
+    \item \texttt{inequiv\_relevant}: list of inequivalent relevant GIOs.
+    \item \texttt{inequiv\_flip}: list of inequivalent super-relevant GIOs.
+    \item \texttt{all\_relevant}, \texttt{all\_flip}: full lists before deduplication.
+    \item \texttt{computation\_time}: wall-clock time for $a$-maximization.
+  \end{itemize}
+
+\item \textbf{Validation and cross-checks.} \\
+  \begin{itemize}
+    \item Reproduce the 7,346 fixed points of~\cite{CMNS} for rank-1 and rank-2 groups as a benchmark.
+    \item Reproduce known SQCD conformal windows for $\mathrm{SU}(N_c)$ with $N_f$ fundamentals.
+    \item Verify $a$ decreases monotonically along every RG flow path in the database.
+    \item Cross-check flip deformations against the analytic formula for $\delta a$.
+  \end{itemize}
+
+\item \textbf{Summary and visualization.} \\
+  \begin{itemize}
+    \item Table of seed theories for each gauge group / rank.
+    \item Number of consistent fixed points vs.\ depth, vs.\ gauge group, vs.\ rank.
+    \item Distribution of $(a, c)$ and $a/c$ ratio (scatter plots).
+    \item Deformation tree / directed graph visualization for each seed.
+    \item Catalog of theories with special properties: $a = c$, theories at boundaries of Hofman--Maldacena bound, terminal fixed points with no relevant deformations.
+  \end{itemize}
+
+\end{enumerate}
+
+%======================================================================
+\section{Implementation Roadmap}
+%======================================================================
+
+\begin{enumerate}[label=\textbf{Phase \arabic*:}]
+
+\item \textbf{Warm-up and infrastructure} (Tasks 0.1--0.5, 1.1--1.3, 3.1--3.6, 6.1) \\
+  Review papers and reference code, set conventions.
+  Generalize \texttt{hilbert.py} to arbitrary Lie types and Dynkin-label representations.
+  Generalize \texttt{FindCharges} to arbitrary simple groups.
+  Set up the database.
+
+\item \textbf{Seed theories} (Tasks 2.1--2.4) \\
+  Enumerate and catalog all seed theories for target gauge groups.
+
+\item \textbf{Deformation engine} (Tasks 4.1--4.4, 5.1--5.3) \\
+  Implement the iterative deformation and tree-building algorithm, generalizing the
+  \texttt{length0} $\to$ \texttt{length5} pipeline.
+
+\item \textbf{Execution and validation} (Task 6.2) \\
+  Run the classification for each gauge group, validate against~\cite{CMNS} and known results.
+
+\item \textbf{Analysis and publication} (Task 6.3) \\
+  Generate tables, plots, and prepare results.
+
+\end{enumerate}
+
+\begin{thebibliography}{9}
+\bibitem{IW} K.~Intriligator and B.~Wecht, ``The exact superconformal R-symmetry maximizes $a$,'' \texttt{hep-th/0304128}.
+\bibitem{CMNS} M.~Cho, K.~Maruyoshi, E.~Nardoni, and J.~Song, ``Large landscape of 4d superconformal field theories from small gauge theories,'' \texttt{arXiv:2408.02953}.
+\end{thebibliography}
+
+\end{document}
