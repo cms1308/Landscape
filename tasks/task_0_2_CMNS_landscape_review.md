@@ -97,11 +97,10 @@ the unitarity bound is violated and $\mathcal{O}_d$ must decouple.
 - The remaining interacting sector has its own (corrected) R-charges and central charges.
 
 **Operational implementation (CMNS):**
-Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ with $\delta W = X \cdot \mathcal{O}_d$.
+Decoupling is implemented by **flipping** $\mathcal{O}_d$: add a singlet $X$ (free field at UV, $R_{\text{UV}}[X] = 2/3$) with $\delta W = X \cdot \mathcal{O}_d$.
+- The coupling $X \cdot \mathcal{O}_d$ has $R_{\text{UV}} = 2/3 + R[\mathcal{O}_d] < 4/3 < 2$, so it is relevant.
 - F-term $\partial W / \partial X = 0$ sets $\mathcal{O}_d = 0$ in the chiral ring, removing it from the interacting sector.
-- $R[X] = 2 - R[\mathcal{O}_d]$. Since $R[\mathcal{O}_d] < 2/3$, we have $R[X] > 4/3$.
-  Since $R[\mathcal{O}_d] > 0$, we also have $R[X] < 2$, so $X$ is **relevant** (available for further direct deformation)
-  but not super-relevant (cannot itself be flipped).
+- At the IR: $R_{\text{IR}}[X] = 2 - R[\mathcal{O}_d]$, with $4/3 < R[X] < 2$ (relevant but not super-relevant).
 - Redo $a$-maximization with the new superpotential.
 - In CMNS, this does **not** count as increasing depth (it is a consistency correction, not a chosen deformation).
 
