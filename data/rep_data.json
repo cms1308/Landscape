@@ -1,0 +1,693 @@
+{
+  "A1": {
+    "dim_G": 3,
+    "T_adj": "2",
+    "d_factors": [
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1
+        ],
+        "dim": 2,
+        "T_R": "1/2",
+        "C2_R": "3/2",
+        "reality": "pseudo-real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          2
+        ],
+        "dim": 3,
+        "T_R": "2",
+        "C2_R": "4",
+        "reality": "real"
+      },
+      {
+        "name": "[3]",
+        "dynkin_label": [
+          3
+        ],
+        "dim": 4,
+        "T_R": "5",
+        "C2_R": "15/2",
+        "reality": "pseudo-real"
+      },
+      {
+        "name": "[4]",
+        "dynkin_label": [
+          4
+        ],
+        "dim": 5,
+        "T_R": "10",
+        "C2_R": "12",
+        "reality": "real"
+      }
+    ]
+  },
+  "A2": {
+    "dim_G": 8,
+    "T_adj": "3",
+    "d_factors": [
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 3,
+        "T_R": "1/2",
+        "C2_R": "8/3",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-fund",
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 3,
+        "T_R": "1/2",
+        "C2_R": "8/3",
+        "reality": "complex"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 8,
+        "T_R": "3",
+        "C2_R": "6",
+        "reality": "real"
+      },
+      {
+        "name": "sym",
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 6,
+        "T_R": "5/2",
+        "C2_R": "20/3",
+        "reality": "complex"
+      },
+      {
+        "name": "sym-bar",
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 6,
+        "T_R": "5/2",
+        "C2_R": "20/3",
+        "reality": "complex"
+      },
+      {
+        "name": "[3,0]",
+        "dynkin_label": [
+          3,
+          0
+        ],
+        "dim": 10,
+        "T_R": "15/2",
+        "C2_R": "12",
+        "reality": "complex"
+      }
+    ]
+  },
+  "A3": {
+    "dim_G": 15,
+    "T_adj": "4",
+    "d_factors": [
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0,
+          0
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "C2_R": "15/4",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-fund",
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "C2_R": "15/4",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-sym",
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 6,
+        "T_R": "1",
+        "C2_R": "5",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          1,
+          0,
+          1
+        ],
+        "dim": 15,
+        "T_R": "4",
+        "C2_R": "8",
+        "reality": "real"
+      },
+      {
+        "name": "sym",
+        "dynkin_label": [
+          2,
+          0,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "C2_R": "9",
+        "reality": "complex"
+      },
+      {
+        "name": "sym-bar",
+        "dynkin_label": [
+          0,
+          0,
+          2
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "C2_R": "9",
+        "reality": "complex"
+      }
+    ]
+  },
+  "A4": {
+    "dim_G": 24,
+    "T_adj": "5",
+    "d_factors": [
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "dim": 5,
+        "T_R": "1/2",
+        "C2_R": "24/5",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-fund",
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 5,
+        "T_R": "1/2",
+        "C2_R": "24/5",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-sym",
+        "dynkin_label": [
+          0,
+          1,
+          0,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3/2",
+        "C2_R": "36/5",
+        "reality": "complex"
+      },
+      {
+        "name": "anti-sym-bar",
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3/2",
+        "C2_R": "36/5",
+        "reality": "complex"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "dim": 24,
+        "T_R": "5",
+        "C2_R": "10",
+        "reality": "real"
+      },
+      {
+        "name": "sym",
+        "dynkin_label": [
+          2,
+          0,
+          0,
+          0
+        ],
+        "dim": 15,
+        "T_R": "7/2",
+        "C2_R": "56/5",
+        "reality": "complex"
+      }
+    ]
+  },
+  "B2": {
+    "dim_G": 10,
+    "T_adj": "3",
+    "d_factors": [
+      "1",
+      "2"
+    ],
+    "reps": [
+      {
+        "name": "vector",
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 5,
+        "T_R": "1",
+        "C2_R": "4",
+        "reality": "real"
+      },
+      {
+        "name": "spinor",
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "C2_R": "5/2",
+        "reality": "pseudo-real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "C2_R": "6",
+        "reality": "real"
+      },
+      {
+        "name": "sym traceless",
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 14,
+        "T_R": "7",
+        "C2_R": "10",
+        "reality": "real"
+      }
+    ]
+  },
+  "C2": {
+    "dim_G": 10,
+    "T_adj": "3",
+    "d_factors": [
+      "2",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "C2_R": "5/2",
+        "reality": "pseudo-real"
+      },
+      {
+        "name": "[0,1]",
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 5,
+        "T_R": "1",
+        "C2_R": "4",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "C2_R": "6",
+        "reality": "real"
+      },
+      {
+        "name": "[0,2]",
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 14,
+        "T_R": "7",
+        "C2_R": "10",
+        "reality": "real"
+      },
+      {
+        "name": "[1,1]",
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 16,
+        "T_R": "6",
+        "C2_R": "15/2",
+        "reality": "pseudo-real"
+      }
+    ]
+  },
+  "G2": {
+    "dim_G": 14,
+    "T_adj": "4",
+    "d_factors": [
+      "3",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 7,
+        "T_R": "1",
+        "C2_R": "4",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 14,
+        "T_R": "4",
+        "C2_R": "8",
+        "reality": "real"
+      },
+      {
+        "name": "[2,0]",
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 27,
+        "T_R": "9",
+        "C2_R": "28/3",
+        "reality": "real"
+      },
+      {
+        "name": "[1,1]",
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 64,
+        "T_R": "32",
+        "C2_R": "14",
+        "reality": "real"
+      }
+    ]
+  },
+  "B3": {
+    "dim_G": 21,
+    "T_adj": "5",
+    "d_factors": [
+      "1",
+      "1",
+      "2"
+    ],
+    "reps": [
+      {
+        "name": "vector",
+        "dynkin_label": [
+          1,
+          0,
+          0
+        ],
+        "dim": 7,
+        "T_R": "1",
+        "C2_R": "6",
+        "reality": "real"
+      },
+      {
+        "name": "spinor",
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "C2_R": "21/4",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 21,
+        "T_R": "5",
+        "C2_R": "10",
+        "reality": "real"
+      },
+      {
+        "name": "sym traceless",
+        "dynkin_label": [
+          2,
+          0,
+          0
+        ],
+        "dim": 27,
+        "T_R": "9",
+        "C2_R": "14",
+        "reality": "real"
+      }
+    ]
+  },
+  "C3": {
+    "dim_G": 21,
+    "T_adj": "4",
+    "d_factors": [
+      "2",
+      "2",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          1,
+          0,
+          0
+        ],
+        "dim": 6,
+        "T_R": "1/2",
+        "C2_R": "7/2",
+        "reality": "pseudo-real"
+      },
+      {
+        "name": "[0,1,0]",
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 14,
+        "T_R": "2",
+        "C2_R": "6",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          2,
+          0,
+          0
+        ],
+        "dim": 21,
+        "T_R": "4",
+        "C2_R": "8",
+        "reality": "real"
+      },
+      {
+        "name": "[0,0,1]",
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 14,
+        "T_R": "5/2",
+        "C2_R": "15/2",
+        "reality": "pseudo-real"
+      }
+    ]
+  },
+  "D4": {
+    "dim_G": 28,
+    "T_adj": "6",
+    "d_factors": [
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "name": "vector",
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "C2_R": "7",
+        "reality": "real"
+      },
+      {
+        "name": "spinor",
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "C2_R": "7",
+        "reality": "real"
+      },
+      {
+        "name": "conj-spinor",
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "C2_R": "7",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          0,
+          1,
+          0,
+          0
+        ],
+        "dim": 28,
+        "T_R": "6",
+        "C2_R": "12",
+        "reality": "real"
+      }
+    ]
+  },
+  "F4": {
+    "dim_G": 52,
+    "T_adj": "9",
+    "d_factors": [
+      "1",
+      "1",
+      "2",
+      "2"
+    ],
+    "reps": [
+      {
+        "name": "fund",
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 26,
+        "T_R": "3",
+        "C2_R": "12",
+        "reality": "real"
+      },
+      {
+        "name": "adj",
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "dim": 52,
+        "T_R": "9",
+        "C2_R": "18",
+        "reality": "real"
+      }
+    ]
+  }
+}

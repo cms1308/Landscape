@@ -1,45 +1,68 @@
 """
 Compute representation data for simple Lie groups using LiE.
-For each group and representation (Dynkin label), computes:
-  - dimension |R|
-  - Dynkin index T(R) (normalized so T(fund) = 1/2 for A_r)
-  - reality: real, pseudo-real, or complex
 
-LiE's norm() uses its own normalization. We extract dim(R)*C2_LiE(R) which
-is proportional to T(R), then calibrate using the adjoint:
-  T(adj) = h^v in our convention
-  dim(R)*C2_LiE(R) / dim(adj)*C2_LiE(adj) = T(R) / T(adj)
-  => T(R) = h^v * dim(R)*C2_LiE(R) / (dim(adj)*C2_LiE(adj))
+The Dynkin index T(R) is computed via:
+  T(R) = dim(R) * C_2(R) / dim(G)
+
+where C_2(R) = (lambda, lambda + 2*rho) with the inner product normalized
+so that (alpha_long, alpha_long) = 2.
+
+In Dynkin label coordinates, the inner product is:
+  (lambda, mu) = sum_{ij} lambda_i * D_i * (A^{-1})_{ij} * mu_j
+
+where A is the Cartan matrix and D = diag(d_1,...,d_r) with d_i = 2/||alpha_i||^2.
+For simply-laced (A,D,E): d_i = 1 for all i.
+For B_r: d_i = 1 for i < r, d_r = 2.
+For C_r: d_i = 1 for i < r, d_r = 1/2.  (Wait, C has short roots at position r?)
+Actually: for C_r, the LONG root is alpha_1,...,alpha_{r-1} with ||alpha||^2 = 2,
+and alpha_r is long with ||alpha_r||^2 = 4... no.
+
+Standard Bourbaki: for C_r, alpha_r is the long root.
+d_i = 2/||alpha_i||^2:
+  B_r: alpha_1,...,alpha_{r-1} long (||^2=2, d=1), alpha_r short (||^2=1, d=2)
+  C_r: alpha_1,...,alpha_{r-1} short (||^2=1, d=2), alpha_r long (||^2=2, d=1)
+  G_2: alpha_1 short (d=3), alpha_2 long (d=1)
+  F_4: alpha_1,alpha_2 long (d=1), alpha_3,alpha_4 short (d=2)
+
+Actually LiE uses its own conventions. Let me just use LiE to compute everything
+self-consistently via tensor product decomposition.
+
+Method: T(R) can be extracted from R ⊗ R* = adj + ... + trivial.
+  Tr_R(T^a T^b) = T(R) delta^{ab}
+  => sum_R (T^a)_{ij} (T^b)_{ji} = T(R) delta^{ab}
+  => Tr_{R⊗R*}(T^a ⊗ 1 + 1 ⊗ T^a)(T^b ⊗ 1 + 1 ⊗ T^b) includes cross terms...
+
+Actually simplest: use the identity
+  dim(R) * C_2(R) = T(R) * dim(G)
+and compute C_2(R) properly.
+
+FINAL APPROACH: compute everything in Python using the inverse Cartan matrix
+and the symmetrization factors d_i, obtained from LiE's Cartan matrix.
 """
 
 import subprocess
 import json
-import sys
+from fractions import Fraction
 
-# Known dual Coxeter numbers and adjoint Dynkin labels
-DUAL_COXETER = {
-    'A1': 2, 'A2': 3, 'A3': 4, 'A4': 5, 'A5': 6, 'A6': 7, 'A7': 8,
-    'B2': 3, 'B3': 5, 'B4': 7, 'B5': 9,
-    'C2': 3, 'C3': 4, 'C4': 5, 'C5': 6,
-    'D3': 4, 'D4': 6, 'D5': 8,
-    'G2': 4, 'F4': 9, 'E6': 12, 'E7': 18, 'E8': 30,
+# Symmetrization factors d_i = diagonal of D where D*A = symmetrized Cartan matrix
+# d_i can be read from: d_i * A_{ii} = 2 (diagonal of symmetrized matrix)
+# => d_i = 2 / A_{ii}  ... NO, that's only if off-diag is symmetric
+# Actually: D*A is symmetric. D = diag(d_1,...,d_r).
+# (D*A)_{ij} = d_i * A_{ij} should equal (D*A)_{ji} = d_j * A_{ji}
+# So d_i * A_{ij} = d_j * A_{ji}
+# Since A_{ii} = 2: d_i * 2 = d_i * A_{ii}, that's trivially true.
+# From A_{ij}/A_{ji} = d_j/d_i when i≠j, A_{ij}≠0.
+
+# For our purposes, we use the KNOWN d_i values:
+D_FACTORS = {
+    'A': None,  # all 1
+    'B': None,  # computed: 1,...,1,2
+    'C': None,  # computed: 2,...,2,1 (LiE convention)
+    'D': None,  # all 1
+    'E': None,  # all 1
+    'F': None,  # 1,1,2,2 (LiE convention for F4)
+    'G': None,  # 3,1 (LiE convention for G2)
 }
-
-# Adjoint Dynkin labels (highest weight of adjoint rep)
-# A_r: [1,0,...,0,1] for r>=2, [2] for r=1
-# B_r: [0,1,0,...,0]
-# C_r: [2,0,...,0]
-# D_r: [0,1,0,...,0]
-# G2: [0,1], F4: [1,0,0,0], E6: [0,0,0,0,0,1] (or [1,0,0,0,0,1])...
-# Actually just compute from LiE
-def get_adj_label(group):
-    """Get adjoint Dynkin label by parsing LiE's adjoint() output."""
-    code = f"setdefault {group}\nprint(adjoint())\n"
-    lines = lie_eval(code)
-    # Output like "1X[1,1]" — extract the bracket part
-    s = lines[0]
-    bracket = s[s.index('['):s.index(']')+1]
-    return bracket
 
 
 def lie_eval(code):
@@ -49,141 +72,128 @@ def lie_eval(code):
     return lines
 
 
-def get_dim_c2_lie(group, label_str):
-    """Return (dim, dim*C2_LiE) for a representation."""
-    code = f"""setdefault {group}
-rho = all_one(Lie_rank)
-x = {label_str}
-print(dim(x))
-print(dim(x) * (norm(x + rho) - norm(rho)))
-"""
+def get_d_factors(group):
+    """Get symmetrization factors d_i from Cartan matrix."""
+    code = f"setdefault {group}\nprint(Cartan())\nprint(Lie_rank)\n"
     lines = lie_eval(code)
-    dim_r = int(lines[0])
-    dc2 = int(lines[1])
-    return dim_r, dc2
+    # Parse rank
+    rank = int(lines[-1])
+    # Parse Cartan matrix
+    cartan_str = ' '.join(lines[:-1])
+    # Extract numbers
+    import re
+    nums = [int(x) for x in re.findall(r'-?\d+', cartan_str)]
+    A = []
+    for i in range(rank):
+        A.append(nums[i*rank:(i+1)*rank])
+
+    # Compute d_i = 2/||alpha_i||^2 using the relation d_i * A_{ij} = d_j * A_{ji}
+    # Start with d_0 = 1 and propagate (ratios are correct)
+    d = [Fraction(1)] * rank
+    for i in range(rank):
+        for j in range(i+1, rank):
+            if A[i][j] != 0:
+                d[j] = d[i] * Fraction(A[i][j], A[j][i])
+                break
+
+    # Normalize: the long root has ||alpha||^2 = 2, so d_long = 1.
+    # The long root has the SMALLEST d_i (since d = 2/||alpha||^2 and long root has largest ||alpha||^2).
+    # So normalize by dividing all d by min(d).
+    d_min = min(d)
+    d = [x / d_min for x in d]
+
+    return rank, A, d
+
+
+def compute_T(rank, A, d, dim_G, lam):
+    """Compute Dynkin index T(R) for representation with Dynkin label lam.
+
+    C_2(R) = sum_{ij} lam_i * d_i * (A^{-1})_{ij} * (lam_j + 2)
+    T(R) = dim(R) * C_2(R) / dim(G)
+
+    We compute A^{-1} via the adjugate: A^{-1} = adj(A) / det(A)
+    """
+    # Compute A inverse using fractions for exact arithmetic
+    from fractions import Fraction
+    # Convert A to Fraction matrix
+    AF = [[Fraction(A[i][j]) for j in range(rank)] for i in range(rank)]
+
+    # Gaussian elimination to find inverse
+    # Augment [A | I]
+    aug = [AF[i] + [Fraction(1) if i == j else Fraction(0) for j in range(rank)] for i in range(rank)]
+    for col in range(rank):
+        # Find pivot
+        pivot = None
+        for row in range(col, rank):
+            if aug[row][col] != 0:
+                pivot = row
+                break
+        aug[col], aug[pivot] = aug[pivot], aug[col]
+        # Scale
+        scale = aug[col][col]
+        aug[col] = [x / scale for x in aug[col]]
+        # Eliminate
+        for row in range(rank):
+            if row != col and aug[row][col] != 0:
+                factor = aug[row][col]
+                aug[row] = [aug[row][j] - factor * aug[col][j] for j in range(2*rank)]
+    Ainv = [row[rank:] for row in aug]
+
+    # rho in Dynkin labels = [1,1,...,1]
+    lam_plus_2rho = [lam[i] + 2 for i in range(rank)]
+
+    # Metric g = A^{-1} . D where D_j = ||alpha_j||^2 / 2 = 1/d_j
+    # (d_j = 2/||alpha_j||^2 as computed from Cartan matrix)
+    # g_{ij} = sum_k Ainv_{ik} * D_k * delta_{kj} = Ainv_{ij} * (1/d_j)
+    # C_2 = sum_{ij} lam_i * g_{ij} * (lam_j + 2)
+    #      = sum_{ij} lam_i * Ainv_{ij} * (1/d_j) * (lam_j + 2)
+    C2 = Fraction(0)
+    for i in range(rank):
+        for j in range(rank):
+            C2 += Fraction(lam[i]) * Ainv[i][j] / d[j] * Fraction(lam_plus_2rho[j])
+
+    # Get dimension from LiE
+    # (passed in from caller)
+    return C2
+
+
+def get_dim(group, label_str):
+    code = f"setdefault {group}\nprint(dim({label_str}))\n"
+    lines = lie_eval(code)
+    return int(lines[0])
 
 
 def get_reality(group, label_str):
     """Return 'real', 'pseudo-real', or 'complex'."""
-    # Step 1: check self-conjugacy
-    code1 = f"setdefault {group}\nprint(contragr({label_str}) == {label_str})\n"
-    lines1 = lie_eval(code1)
-    is_self_conj = int(lines1[0])
+    code = f"setdefault {group}\nx = {label_str}\nprint(contragr(x) == x)\n"
+    lines = lie_eval(code)
+    is_self_conj = int(lines[0])
     if not is_self_conj:
         return 'complex'
 
-    # Step 2: for self-conjugate reps, check Frobenius-Schur indicator
-    # alt^2(R) contains trivial => pseudo-real; sym^2(R) contains trivial => real
-    # Dim of trivial component in alt^2: use LiE's restriction notation
-    code2 = f"""setdefault {group}
-x = {label_str}
-a = alt_tensor(2,x)
-print(dim(a))
-s = sym_tensor(2,x)
-d = dim(x)
-ad = dim(a)
-sd = dim(s)
-print(ad)
-print(sd)
-"""
+    code2 = f"setdefault {group}\nx = {label_str}\nz = null(Lie_rank)\na = alt_tensor(2,x)\nprint(a|z)\n"
     lines2 = lie_eval(code2)
-    dim_alt2 = int(lines2[1])
-    dim_sym2 = int(lines2[2])
-    dim_r = int(lines2[0].split()[0]) if lines2 else 0
-
-    # For dim d rep: dim(sym^2) + dim(alt^2) = d*(d+1)/2 + d*(d-1)/2 = d^2
-    # If alt^2 contains trivial: d*(d-1)/2 includes a singlet => pseudo-real
-    # Easier: for self-conjugate, check if d*(d-1)/2 == dim_alt2 or dim_alt2 includes +1
-    # Actually just check: dim(alt^2) vs d(d-1)/2. If dim(alt^2) includes a singlet
-    # from the symplectic form, then it's pseudo-real.
-    # Simpler: real reps have Frobenius-Schur = +1, pseudo-real have -1.
-    # FS indicator = (1/|G|) sum chi(g^2). For Lie groups:
-    # FS = +1 if sym^2 contains trivial, -1 if alt^2 contains trivial.
-    # But both sym^2 and alt^2 can contain trivial for different reasons...
-    # For irreducible self-conjugate: exactly one of sym^2 or alt^2 contains trivial (once).
-    # Check which by comparing: dim(sym^2(R)) vs dim(R)*(dim(R)+1)/2
-    # If dim(sym^2) = d*(d+1)/2 then no singlet in sym^2 => singlet in alt^2 => pseudo-real
-    # If dim(sym^2) = d*(d+1)/2 + extra => NO, that's wrong direction
-    # Actually: R tensor R = sym^2(R) + alt^2(R). Singlet in R x R iff self-conjugate (which it is).
-    # The singlet lives in either sym^2 or alt^2, indicating real or pseudo-real.
-    # Check: if dim_alt2 = d*(d-1)/2, no singlet in alt^2 => singlet in sym^2 => real
-    # If dim_alt2 = d*(d-1)/2 + 1... no that's not right either.
-    # Let me just count: total dim of R x R = d^2 = dim_sym2 + dim_alt2
-    # Number of singlets in R x R (for self-conjugate irrep) = 1
-    # This singlet is in sym^2 (real) or alt^2 (pseudo-real)
-    # So: if dim_sym2 > d*(d+1)/2 by 1... no, dims of sym^2 and alt^2 as REPRESENTATIONS
-    # are not simply d(d+1)/2 etc. because we decompose into irreps of G.
-
-    # Check if trivial rep appears in alt^2(R): use poly|weight notation
-    code3 = f"""setdefault {group}
-x = {label_str}
-z = null(Lie_rank)
-a = alt_tensor(2,x)
-print(a|z)
-"""
-    lines3 = lie_eval(code3)
-    trivial_in_alt2 = int(lines3[0])
+    trivial_in_alt2 = int(lines2[0])
     if trivial_in_alt2 > 0:
         return 'pseudo-real'
     else:
         return 'real'
 
 
-def compute_group(group, reps):
-    """Compute all rep data for a group."""
-    h_v = DUAL_COXETER[group]
-
-    # Get adjoint dim*C2 for calibration
-    adj_label = get_adj_label(group)
-    adj_code = f"""setdefault {group}
-rho = all_one(Lie_rank)
-print(dim({adj_label}))
-print(dim({adj_label}) * (norm({adj_label} + rho) - norm(rho)))
-"""
-    adj_lines = lie_eval(adj_code)
-    dim_adj = int(adj_lines[0])
-    dc2_adj = int(adj_lines[1])
-
-    print(f"\n{'='*70}")
-    print(f"  {group}  |  dim(G) = {dim_adj}  |  h^v = {h_v}  |  T(adj) = {h_v}")
-    print(f"{'='*70}")
-    print(f"  {'Name':<20} {'Dynkin':<18} {'dim':>5} {'T(R)':>12} {'Reality':<12}")
-    print(f"  {'-'*67}")
-
-    results = []
-    for name, label in reps:
-        label_str = '[' + ','.join(str(x) for x in label) + ']'
-        dim_r, dc2 = get_dim_c2_lie(group, label_str)
-        reality = get_reality(group, label_str)
-
-        # T(R) = h^v * dc2 / dc2_adj
-        from fractions import Fraction
-        T_R = Fraction(h_v * dc2, dc2_adj)
-
-        print(f"  {name:<20} {str(label):<18} {dim_r:>5} {str(T_R):>12} {reality:<12}")
-        results.append({
-            'name': name,
-            'dynkin_label': label,
-            'dim': dim_r,
-            'T_R': str(T_R),
-            'T_R_float': float(T_R),
-            'reality': reality,
-        })
-
-    return {
-        'group': group,
-        'dim_G': dim_adj,
-        'h_dual': h_v,
-        'T_adj': h_v,
-        'reps': results,
-    }
+def get_adj_label(group):
+    code = f"setdefault {group}\nprint(adjoint())\n"
+    lines = lie_eval(code)
+    s = lines[0]
+    bracket = s[s.index('['):s.index(']')+1]
+    import ast
+    return ast.literal_eval(bracket)
 
 
 # Groups and their representations
 GROUPS_REPS = {
     'A1': [
-        ('fund [1]', [1]),
-        ('adj [2]', [2]),
+        ('fund', [1]),
+        ('adj', [2]),
         ('[3]', [3]),
         ('[4]', [4]),
     ],
@@ -198,7 +208,7 @@ GROUPS_REPS = {
     'A3': [
         ('fund', [1,0,0]),
         ('anti-fund', [0,0,1]),
-        ('anti-sym [0,1,0]', [0,1,0]),
+        ('anti-sym', [0,1,0]),
         ('adj', [1,0,1]),
         ('sym', [2,0,0]),
         ('sym-bar', [0,0,2]),
@@ -214,54 +224,90 @@ GROUPS_REPS = {
     'B2': [
         ('vector', [1,0]),
         ('spinor', [0,1]),
-        ('adj', [2,0]),
-        ('[0,2]', [0,2]),
+        ('adj', [0,2]),
+        ('sym traceless', [2,0]),
     ],
     'C2': [
         ('fund', [1,0]),
         ('[0,1]', [0,1]),
-        ('adj [2,0]', [2,0]),
+        ('adj', [2,0]),
         ('[0,2]', [0,2]),
         ('[1,1]', [1,1]),
     ],
     'G2': [
-        ('fund [1,0]', [1,0]),
-        ('adj [0,1]', [0,1]),
+        ('fund', [1,0]),
+        ('adj', [0,1]),
         ('[2,0]', [2,0]),
         ('[1,1]', [1,1]),
-        ('[0,2]', [0,2]),
     ],
     'B3': [
         ('vector', [1,0,0]),
         ('spinor', [0,0,1]),
-        ('adj [0,1,0]', [0,1,0]),
-        ('sym [2,0,0]', [2,0,0]),
+        ('adj', [0,1,0]),
+        ('sym traceless', [2,0,0]),
     ],
     'C3': [
         ('fund', [1,0,0]),
         ('[0,1,0]', [0,1,0]),
-        ('sym [2,0,0]', [2,0,0]),
+        ('adj', [2,0,0]),
         ('[0,0,1]', [0,0,1]),
     ],
     'D4': [
         ('vector', [1,0,0,0]),
         ('spinor', [0,0,1,0]),
         ('conj-spinor', [0,0,0,1]),
-        ('adj [0,1,0,0]', [0,1,0,0]),
+        ('adj', [0,1,0,0]),
     ],
     'F4': [
-        ('[1,0,0,0]', [1,0,0,0]),
-        ('[0,0,0,1]', [0,0,0,1]),
-        ('[0,1,0,0]', [0,1,0,0]),
+        ('fund', [0,0,0,1]),
+        ('adj', [1,0,0,0]),
     ],
 }
 
 
 if __name__ == '__main__':
     all_results = {}
+
     for grp, reps in GROUPS_REPS.items():
-        all_results[grp] = compute_group(grp, reps)
+        rank, A, d = get_d_factors(grp)
+        adj_label = get_adj_label(grp)
+        dim_G = get_dim(grp, str(adj_label))
+
+        # Verify T(adj) = h^v by computing C2(adj)
+        C2_adj = compute_T(rank, A, d, dim_G, adj_label)
+        T_adj = C2_adj * dim_G / (2 * dim_G)  # T(adj) = C2(adj) / 2 in physics convention
+
+        print(f"\n{'='*75}")
+        print(f"  {grp}  |  dim(G) = {dim_G}  |  d = {[str(x) for x in d]}  |  T(adj) = {T_adj}")
+        print(f"{'='*75}")
+        print(f"  {'Name':<20} {'Dynkin':<18} {'dim':>5} {'T(R)':>12} {'C2(R)':>12} {'Reality':<12}")
+        print(f"  {'-'*75}")
+
+        grp_results = []
+        for name, label in reps:
+            label_str = str(label)
+            dim_R = get_dim(grp, label_str)
+            C2_R = compute_T(rank, A, d, dim_G, label)
+            T_R = C2_R * dim_R / (2 * dim_G)
+            reality = get_reality(grp, label_str)
+
+            print(f"  {name:<20} {label_str:<18} {dim_R:>5} {str(T_R):>12} {str(C2_R):>12} {reality:<12}")
+            grp_results.append({
+                'name': name,
+                'dynkin_label': label,
+                'dim': dim_R,
+                'T_R': str(T_R),
+                'C2_R': str(C2_R),
+                'reality': reality,
+            })
+
+        all_results[grp] = {
+            'dim_G': dim_G,
+            'T_adj': str(T_adj),
+            'd_factors': [str(x) for x in d],
+            'reps': grp_results,
+        }
 
     with open('data/rep_data.json', 'w') as f:
-        json.dump(all_results, f, indent=2, default=str)
+        json.dump(all_results, f, indent=2)
     print(f"\nSaved to data/rep_data.json")
