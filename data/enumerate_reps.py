@@ -251,8 +251,14 @@ def enumerate_reps(group):
 
         if T_R < T_max:
             contragr = get_contragr_lie(group, lam)
-            if tuple(contragr) < lam_tuple and tuple(contragr) in seen_contragr:
-                continue
+            # For complex reps, keep the one with LOWER Dynkin label tuple
+            # (e.g. [1,0] before [0,1] for A2) and list the other as conjugate
+            if tuple(contragr) != lam_tuple:
+                # Complex rep — check if conjugate already seen or if we should skip
+                if tuple(contragr) in seen_contragr:
+                    continue  # conjugate already listed as primary
+                if lam_tuple < tuple(contragr):
+                    continue  # we're the lower label; wait for the higher one
             reality = get_reality_lie(group, lam)
             results.append({
                 'dynkin_label': lam,
