@@ -1,0 +1,932 @@
+{
+  "A1": {
+    "group": "A1",
+    "rank": 1,
+    "dim_G": 3,
+    "h_dual": 2,
+    "T_max": 6,
+    "d_factors": [
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          1
+        ],
+        "dim": 2,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "3/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2
+        ],
+        "dim": 3,
+        "T_R": "2",
+        "T_R_float": 2.0,
+        "C2": "4",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          3
+        ],
+        "dim": 4,
+        "T_R": "5",
+        "T_R_float": 5.0,
+        "C2": "15/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      }
+    ]
+  },
+  "A2": {
+    "group": "A2",
+    "rank": 2,
+    "dim_G": 8,
+    "h_dual": 3,
+    "T_max": 9,
+    "d_factors": [
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 3,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "8/3",
+        "reality": "complex",
+        "contragr": [
+          1,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 6,
+        "T_R": "5/2",
+        "T_R_float": 2.5,
+        "C2": "20/3",
+        "reality": "complex",
+        "contragr": [
+          2,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 8,
+        "T_R": "3",
+        "T_R_float": 3.0,
+        "C2": "6",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          3
+        ],
+        "dim": 10,
+        "T_R": "15/2",
+        "T_R_float": 7.5,
+        "C2": "12",
+        "reality": "complex",
+        "contragr": [
+          3,
+          0
+        ]
+      }
+    ]
+  },
+  "A3": {
+    "group": "A3",
+    "rank": 3,
+    "dim_G": 15,
+    "h_dual": 4,
+    "T_max": 12,
+    "d_factors": [
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "15/4",
+        "reality": "complex",
+        "contragr": [
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 6,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "5",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          2
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "T_R_float": 3.0,
+        "C2": "9",
+        "reality": "complex",
+        "contragr": [
+          2,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          1
+        ],
+        "dim": 15,
+        "T_R": "4",
+        "T_R_float": 4.0,
+        "C2": "8",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          1
+        ],
+        "dim": 20,
+        "T_R": "13/2",
+        "T_R_float": 6.5,
+        "C2": "39/4",
+        "reality": "complex",
+        "contragr": [
+          1,
+          1,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          2,
+          0
+        ],
+        "dim": 20,
+        "T_R": "8",
+        "T_R_float": 8.0,
+        "C2": "12",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          3
+        ],
+        "dim": 20,
+        "T_R": "21/2",
+        "T_R_float": 10.5,
+        "C2": "63/4",
+        "reality": "complex",
+        "contragr": [
+          3,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "A4": {
+    "group": "A4",
+    "rank": 4,
+    "dim_G": 24,
+    "h_dual": 5,
+    "T_max": 15,
+    "d_factors": [
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 5,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "24/5",
+        "reality": "complex",
+        "contragr": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3/2",
+        "T_R_float": 1.5,
+        "C2": "36/5",
+        "reality": "complex",
+        "contragr": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          2
+        ],
+        "dim": 15,
+        "T_R": "7/2",
+        "T_R_float": 3.5,
+        "C2": "56/5",
+        "reality": "complex",
+        "contragr": [
+          2,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "dim": 24,
+        "T_R": "5",
+        "T_R_float": 5.0,
+        "C2": "10",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "dim": 40,
+        "T_R": "11",
+        "T_R_float": 11.0,
+        "C2": "66/5",
+        "reality": "complex",
+        "contragr": [
+          1,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          0,
+          1
+        ],
+        "dim": 45,
+        "T_R": "12",
+        "T_R_float": 12.0,
+        "C2": "64/5",
+        "reality": "complex",
+        "contragr": [
+          1,
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          3
+        ],
+        "dim": 35,
+        "T_R": "14",
+        "T_R_float": 14.0,
+        "C2": "96/5",
+        "reality": "complex",
+        "contragr": [
+          3,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "B2": {
+    "group": "B2",
+    "rank": 2,
+    "dim_G": 10,
+    "h_dual": 3,
+    "T_max": 9,
+    "d_factors": [
+      "1",
+      "2"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "5/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 5,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "4",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "T_R_float": 3.0,
+        "C2": "6",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 16,
+        "T_R": "6",
+        "T_R_float": 6.0,
+        "C2": "15/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 14,
+        "T_R": "7",
+        "T_R_float": 7.0,
+        "C2": "10",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "B3": {
+    "group": "B3",
+    "rank": 3,
+    "dim_G": 21,
+    "h_dual": 5,
+    "T_max": 15,
+    "d_factors": [
+      "1",
+      "1",
+      "2"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "21/4",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0
+        ],
+        "dim": 7,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "6",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 21,
+        "T_R": "5",
+        "T_R_float": 5.0,
+        "C2": "10",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0,
+          0
+        ],
+        "dim": 27,
+        "T_R": "9",
+        "T_R_float": 9.0,
+        "C2": "14",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          2
+        ],
+        "dim": 35,
+        "T_R": "10",
+        "T_R_float": 10.0,
+        "C2": "12",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          1
+        ],
+        "dim": 48,
+        "T_R": "14",
+        "T_R_float": 14.0,
+        "C2": "49/4",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "C2": {
+    "group": "C2",
+    "rank": 2,
+    "dim_G": 10,
+    "h_dual": 3,
+    "T_max": 9,
+    "d_factors": [
+      "2",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 4,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "5/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 5,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "4",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 10,
+        "T_R": "3",
+        "T_R_float": 3.0,
+        "C2": "6",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          1
+        ],
+        "dim": 16,
+        "T_R": "6",
+        "T_R_float": 6.0,
+        "C2": "15/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          2
+        ],
+        "dim": 14,
+        "T_R": "7",
+        "T_R_float": 7.0,
+        "C2": "10",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "C3": {
+    "group": "C3",
+    "rank": 3,
+    "dim_G": 21,
+    "h_dual": 4,
+    "T_max": 12,
+    "d_factors": [
+      "2",
+      "2",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0
+        ],
+        "dim": 6,
+        "T_R": "1/2",
+        "T_R_float": 0.5,
+        "C2": "7/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          0
+        ],
+        "dim": 14,
+        "T_R": "2",
+        "T_R_float": 2.0,
+        "C2": "6",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1
+        ],
+        "dim": 14,
+        "T_R": "5/2",
+        "T_R_float": 2.5,
+        "C2": "15/2",
+        "reality": "pseudo-real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0,
+          0
+        ],
+        "dim": 21,
+        "T_R": "4",
+        "T_R_float": 4.0,
+        "C2": "8",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "D4": {
+    "group": "D4",
+    "rank": 4,
+    "dim_G": 28,
+    "h_dual": 6,
+    "T_max": 18,
+    "d_factors": [
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "7",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "7",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "dim": 8,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "7",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1,
+          0,
+          0
+        ],
+        "dim": 28,
+        "T_R": "6",
+        "T_R_float": 6.0,
+        "C2": "12",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          2
+        ],
+        "dim": 35,
+        "T_R": "10",
+        "T_R_float": 10.0,
+        "C2": "16",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          2,
+          0
+        ],
+        "dim": 35,
+        "T_R": "10",
+        "T_R_float": 10.0,
+        "C2": "16",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0,
+          0,
+          0
+        ],
+        "dim": 35,
+        "T_R": "10",
+        "T_R_float": 10.0,
+        "C2": "16",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "dim": 56,
+        "T_R": "15",
+        "T_R_float": 15.0,
+        "C2": "15",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "dim": 56,
+        "T_R": "15",
+        "T_R_float": 15.0,
+        "C2": "15",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "dim": 56,
+        "T_R": "15",
+        "T_R_float": 15.0,
+        "C2": "15",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "G2": {
+    "group": "G2",
+    "rank": 2,
+    "dim_G": 14,
+    "h_dual": 4,
+    "T_max": 12,
+    "d_factors": [
+      "3",
+      "1"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          1,
+          0
+        ],
+        "dim": 7,
+        "T_R": "1",
+        "T_R_float": 1.0,
+        "C2": "4",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          0,
+          1
+        ],
+        "dim": 14,
+        "T_R": "4",
+        "T_R_float": 4.0,
+        "C2": "8",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          2,
+          0
+        ],
+        "dim": 27,
+        "T_R": "9",
+        "T_R_float": 9.0,
+        "C2": "28/3",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  },
+  "F4": {
+    "group": "F4",
+    "rank": 4,
+    "dim_G": 52,
+    "h_dual": 9,
+    "T_max": 27,
+    "d_factors": [
+      "1",
+      "1",
+      "2",
+      "2"
+    ],
+    "reps": [
+      {
+        "dynkin_label": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "dim": 26,
+        "T_R": "3",
+        "T_R_float": 3.0,
+        "C2": "12",
+        "reality": "real",
+        "contragr": null
+      },
+      {
+        "dynkin_label": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "dim": 52,
+        "T_R": "9",
+        "T_R_float": 9.0,
+        "C2": "18",
+        "reality": "real",
+        "contragr": null
+      }
+    ]
+  }
+}
