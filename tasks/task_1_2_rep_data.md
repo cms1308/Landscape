@@ -43,7 +43,7 @@ All data can be computed via LiE (`dim`, `contragr`, `alt_tensor`) but the Dynki
 | [1,0] | vector (**5**) | 5 | 1 | real |
 | [0,1] | spinor (**4**) | 4 | 1/2 | pseudo-real |
 | [0,2] | antisymmetric traceless (**10**) | 10 | 3 | real |
-| [2,0] | symmetric traceless (**14**) | 14 | 5 | real |
+| [2,0] | symmetric traceless (**14**) | 14 | 7 | real |
 
 Note: The adjoint of SO(5) is the antisymmetric tensor **10** = [0,2] with $T = h^\vee = 3$.
 
@@ -54,8 +54,8 @@ Note: The adjoint of SO(5) is the antisymmetric tensor **10** = [0,2] with $T = 
 | [1,0] | fund (**4**) | 4 | 1/2 | pseudo-real |
 | [0,1] | traceless antisym (**5**) | 5 | 1 | real |
 | [2,0] | adj = sym (**10**) | 10 | 3 | real |
-| [0,2] | **14** | 14 | 5 | real |
-| [1,1] | **16** | 16 | 7/2 | pseudo-real |
+| [0,2] | **14** | 14 | 7 | real |
+| [1,1] | **16** | 16 | 6 | pseudo-real |
 
 Note: $B_2 \cong C_2$. The vector **5** of SO(5) = [0,1] of Sp(4), and the spinor **4** of SO(5) = fund [1,0] of Sp(4).
 
@@ -66,7 +66,7 @@ Note: $B_2 \cong C_2$. The vector **5** of SO(5) = [0,1] of Sp(4), and the spino
 | [1,0] | fund (**7**) | 7 | 1 | real |
 | [0,1] | adj (**14**) | 14 | 4 | real |
 | [2,0] | **27** | 27 | 9 | real |
-| [1,1] | **64** | 64 | 28 | real |
+| [1,1] | **64** | 64 | 32 | real |
 | [0,2] | **77** | 77 | 42 | real |
 
 Note: All representations of $G_2$ are real (the group has no complex or pseudo-real representations).
@@ -85,7 +85,7 @@ Note: All representations of $G_2$ are real (the group has no complex or pseudo-
 | Dynkin label | Name | dim | $T(R)$ | Reality |
 |-------------|------|-----|--------|---------|
 | [1,0,0] | fund (**6**) | 6 | 1/2 | pseudo-real |
-| [0,1,0] | traceless antisym (**14**) | 14 | 5/2 | real |
+| [0,1,0] | traceless antisym (**14**) | 14 | 2 | real |
 | [2,0,0] | adj = sym (**21**) | 21 | 4 | real |
 | [0,0,1] | **14'** | 14 | 5/2 | pseudo-real |
 
@@ -126,6 +126,10 @@ For $\mathrm{SO}(N)$:
 For $\mathrm{Sp}(2r)$:
 - $T(\text{fund}) = 1/2$
 - $T(\text{adj}) = r+1 = h^\vee$
+
+For $G_2$:
+- $T(\text{fund}) = 1$
+- $T(\text{adj}) = 4 = h^\vee$
 
 ## How to Compute via LiE
 
