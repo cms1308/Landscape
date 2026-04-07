@@ -9,6 +9,12 @@ Conditions:
    - Only SU(N) for N >= 3 and E6 have nonzero cubic anomaly
    - For our groups (A1-A4, B, C, D, G2, F4): only A2, A3, A4 need anomaly cancellation
 
+3. Witten anomaly (global gauge anomaly): for groups with pi_4(G) = Z_2,
+   sum_i N_i * 2*T(R_i) must be even.
+   Groups with pi_4 = Z_2: SU(2) = Sp(1), and Sp(N) for all N.
+   i.e. A1 and all C_r types.
+   Only representations with 2*T(R) odd contribute to the anomaly.
+
 Strategy:
 - For groups with no cubic anomaly (A1, B, C, D, G2, F4):
   enumerate all multisets of reps with total T < 3*h^v
@@ -17,6 +23,7 @@ Strategy:
   A(R) for SU(N) is computed from the Dynkin labels.
   For simplicity, we require complex reps to come in (R, R_bar) pairs.
   This automatically cancels the cubic anomaly since A(R_bar) = -A(R).
+- For Sp(N) (A1, C_r): additionally impose Witten anomaly cancellation.
 """
 
 import json
@@ -33,6 +40,35 @@ def has_cubic_anomaly(group):
     """Groups with potentially nonzero d^{abc} symbol."""
     # SU(N) for N >= 3 (i.e. A_r for r >= 2) and E6
     return group.startswith('A') and int(group[1:]) >= 2 or group == 'E6'
+
+
+def has_witten_anomaly(group):
+    """Groups with pi_4(G) = Z_2: SU(2) and Sp(N)."""
+    return group == 'A1' or group.startswith('C')
+
+
+def witten_anomaly_free(matter_list):
+    """Check if matter content is free of the Witten anomaly.
+
+    Condition: sum_i N_i * 2*T(R_i) must be even.
+    For complex reps (R + R_bar), each pair contributes 2 * 2*T(R) = 4*T(R),
+    which is always even. So only real/pseudo-real reps can contribute.
+    """
+    witten_sum = 0
+    for label, n, slot in matter_list:
+        T_R = slot['T_per_copy']
+        if slot['reality'] == 'complex':
+            # R + R_bar: contributes 2*T(R) + 2*T(R_bar) = 4*T(R) per copy, always even
+            continue
+        # Real or pseudo-real: contributes N * 2*T(R)
+        two_T = 2 * T_R
+        # Check if 2*T is odd (i.e. T has denominator 2 and odd numerator)
+        if two_T.denominator == 1:
+            witten_sum += n * int(two_T)
+        else:
+            # 2*T is not integer — shouldn't happen for valid reps, but handle gracefully
+            witten_sum += n * int(two_T)  # truncate
+    return witten_sum % 2 == 0
 
 
 def enumerate_matter(group_data):
@@ -104,6 +140,16 @@ def enumerate_matter(group_data):
                 current.pop()
 
     search(0, T_budget, [])
+
+    # Filter by Witten anomaly for Sp(N) groups
+    check_witten = has_witten_anomaly(group)
+    if check_witten:
+        before = len(results)
+        results = [m for m in results if witten_anomaly_free(m)]
+        after = len(results)
+        if before != after:
+            print(f"  Witten anomaly: {before} -> {after} (removed {before - after})")
+
     return results
 
 
