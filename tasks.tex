@@ -198,9 +198,28 @@ This project generalizes~\cite{CMNS} to all simple gauge groups.
   Enumerate all combinations $\{(R_i, N_i)\}$ satisfying $b_0 > 0$.
 
 \item \textbf{Anomaly cancellation.} \\
-  Impose $\sum_i N_i \, A(R_i) = 0$.
+  \textbf{Perturbative (cubic) anomaly:} impose $\sum_i N_i \, A(R_i) = 0$.
   For real/pseudo-real representations, $A(R) = 0$ automatically.
   For complex representations, pair with conjugates or cancel among distinct representations.
+  Only $\mathrm{SU}(N)$ for $N \geq 3$ (and $E_6$) have nonzero cubic anomaly coefficients.
+
+  \textbf{Witten anomaly (global gauge anomaly):}
+  for gauge groups with $\pi_4(G) = \mathbb{Z}_2$, impose
+  \begin{equation}
+    \sum_i N_i \cdot 2\,T(R_i) \equiv 0 \pmod{2}\,.
+  \end{equation}
+  This applies to $\mathrm{SU}(2)$ and $\mathrm{Sp}(N)$ (i.e.\ $A_1$ and all $C_r$).
+  Only representations with odd $2\,T(R)$ contribute to the constraint.
+  Examples:
+  \begin{itemize}
+    \item $\mathrm{SU}(2)$: fund $[1]$ has $2T = 1$ (odd); adj $[2]$ has $2T = 4$ (even);
+      $[3]$ has $2T = 10$ (even). Only the number of fundamentals must be even.
+    \item $\mathrm{Sp}(2)$: fund $[1,0]$ has $2T = 1$ (odd). Other reps have even $2T$.
+    \item $\mathrm{Sp}(3)$: fund $[1,0,0]$ has $2T = 1$ and $[0,0,1]$ has $2T = 5$ (both odd).
+      Need $N_{\mathrm{fund}} + N_{[0,0,1]} \equiv 0 \pmod{2}$.
+  \end{itemize}
+  Complex representations in $R + \bar{R}$ pairs contribute $4\,T(R)$ (always even) and thus
+  do not affect the Witten anomaly.
 
 \item \textbf{Filter for interacting IR fixed points (seed theories).} \\
   For each asymptotically free, anomaly-free matter content with $W = 0$:
