@@ -174,7 +174,13 @@ if __name__ == '__main__':
 
     groups = sys.argv[1:] if len(sys.argv) > 1 else sorted(GROUP_DATA.keys())
 
-    all_results = {}
+    # Load existing results to merge (don't overwrite other groups)
+    try:
+        with open('data/consistent_seeds.json') as f:
+            all_results = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        all_results = {}
+
     for grp in groups:
         if grp not in seeds_data:
             continue
