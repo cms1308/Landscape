@@ -102,7 +102,7 @@ Do[
 """
     proc = subprocess.run(
         ['wolframscript', '-code', mcode],
-        capture_output=True, encoding='UTF-8', timeout=120
+        capture_output=True, encoding='UTF-8', timeout=300
     )
     lines = [l.strip() for l in proc.stdout.split('\n') if l.strip()]
 

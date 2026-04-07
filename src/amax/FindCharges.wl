@@ -52,6 +52,17 @@ FindCharges[dimG_Integer, Tadj_, repInfo_List, w_List] :=
 
     Catch[
 
+     (* ===== 0. Symmetry: for W={}, all copies of same rep have equal R ===== *)
+     If[w === {},
+      (* Equate R-charges within each rep type *)
+      Do[
+       If[nCopies[[i]] > 1,
+        Do[q[mat[[i, j]]] = q[mat[[i, 1]]], {j, 2, nCopies[[i]]}]
+       ],
+       {i, Length[nCopies]}
+      ]
+     ];
+
      (* ===== 1. ABJ Anomaly: Tadj + sum (q[field]-1)*T(rep) = 0 ===== *)
      abjSum = Tadj + Sum[
         (q[mat[[i, j]]] - 1) mu[[i]],
