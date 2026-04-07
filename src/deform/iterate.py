@@ -23,6 +23,7 @@ from fractions import Fraction
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from hilbert.hilbert import compute_hilbert_series
+from deform.equivalence import deduplicate_theories
 
 AMAX_PATH = "src/amax/FindCharges.wl"
 
@@ -254,8 +255,13 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
                 'deform_R': op['R'],
             })
 
-    print(f"  Depth {depth} -> {depth+1}: {len(candidates)} candidates "
-          f"from {len(seeds_at_depth)} theories")
+    # Deduplicate candidates before running a-maximization
+    n_before = len(candidates)
+    candidates = deduplicate_theories(candidates)
+    n_after = len(candidates)
+
+    print(f"  Depth {depth} -> {depth+1}: {n_before} candidates, "
+          f"{n_after} after dedup, from {len(seeds_at_depth)} theories")
 
     # Run a-maximization on each candidate
     results = []
