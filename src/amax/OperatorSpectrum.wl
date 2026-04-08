@@ -22,11 +22,11 @@ EnumerateOperators[fieldInfo_List, w_List, maxR_:2] :=
    mesons, quartic, allGIO, gio, reduced,
    opcharge, relevant, superrelevant, flippable},
 
-  (* fieldInfo: list of {name, nCopies, reality, rCharge}
+  (* fieldInfo: list of {name, nCopies, reality, rChargeOrList}
      name: field name prefix (e.g. "r0", "M0")
      nCopies: number of copies
      reality: "real", "pseudo-real", "complex", or "singlet"
-     rCharge: R-charge (number) *)
+     rChargeOrList: single number (all copies same) OR list of per-copy R-charges *)
 
   (* Generate field variable names *)
   fields = Table[
@@ -50,22 +50,19 @@ EnumerateOperators[fieldInfo_List, w_List, maxR_:2] :=
 
   (* R-charge function: assign to each field variable *)
   Do[
-    Do[
-      opcharge[fields[[i, j]]] = fieldInfo[[i, 4]],
-      {j, fieldInfo[[i, 2]]}
+    With[{rc = fieldInfo[[i, 4]]},
+      If[ListQ[rc],
+        (* Per-copy R-charges *)
+        Do[opcharge[fields[[i, j]]] = rc[[j]], {j, fieldInfo[[i, 2]]}],
+        (* Single R-charge for all copies *)
+        Do[opcharge[fields[[i, j]]] = rc, {j, fieldInfo[[i, 2]]}]
+      ]
     ],
     {i, Length[fieldInfo]}
   ];
-  (* For composite operators, sum R-charges of constituents *)
-  opcharge[expr_] := Total[
-    Cases[
-      If[Head[expr] === Times, List @@ expr, {expr}],
-      x_ :> (If[Head[x] === Power,
-        x[[2]] * opcharge[x[[1]]],
-        opcharge[x]
-      ])
-    ]
-  ] /; !NumericQ[expr] && !AtomQ[expr];
+  (* For composite operators: expand into base variables and sum *)
+  opcharge[expr_Times] := Plus @@ (opcharge /@ (List @@ expr));
+  opcharge[Power[base_, n_Integer]] := n * opcharge[base];
 
   (* === 1. Construct gauge-invariant mesons === *)
   mesons = {};

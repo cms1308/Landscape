@@ -1,3 +1,5 @@
+(* ::Package:: *)
+
 (* Test generalized a-maximization *)
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "FindCharges.wl"}]];
@@ -37,3 +39,7 @@ test4 = FindCharges[
   {}
 ];
 Print[test4];
+
+
+
+

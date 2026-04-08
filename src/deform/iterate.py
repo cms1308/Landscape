@@ -313,6 +313,7 @@ if __name__ == '__main__':
 
     group = sys.argv[1] if len(sys.argv) > 1 else 'G2'
     max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    seed_idx = int(sys.argv[3]) if len(sys.argv) > 3 else None  # optional: single seed index (0-based)
 
     if group not in seeds_data:
         print(f"No seeds for {group}")
@@ -322,8 +323,13 @@ if __name__ == '__main__':
     dimG, Tadj = GROUP_DATA[group]
 
     # Convert seeds to the format expected by iterate_depth
+    all_seeds = seeds_data[group]
+    if seed_idx is not None:
+        all_seeds = [all_seeds[seed_idx]]
+        print(f"  Single seed #{seed_idx}: {all_seeds[0]['description']}")
+
     current_depth_theories = []
-    for seed in seeds_data[group]:
+    for seed in all_seeds:
         theory = dict(seed)
         theory['w'] = []
         theory['depth'] = 0
