@@ -80,7 +80,7 @@ def classify_operators(pe_raw, rcharges_per_type, rep_type_names):
         }
         all_ops.append(op_info)
 
-        if R < 2/3:
+        if R <= 2/3 + 1e-10:
             unitarity_viol.append(op_info)
         if R < 4/3:
             super_relevant.append(op_info)

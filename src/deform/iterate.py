@@ -208,9 +208,9 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
         operators = get_pe_operators(group, hs_labels, hs_mults, order=hs_order)
         relevant, super_relevant = classify_pe_ops(operators, hs_rcharges)
 
-        # Check for unitarity violations
+        # Check for unitarity violations (R <= 2/3, matching Nf=2N.nb convention)
         has_unitarity_violation = any(
-            sum(d * r for d, r in zip(op['degree'], hs_rcharges)) < 2/3
+            sum(d * r for d, r in zip(op['degree'], hs_rcharges)) <= 2/3 + 1e-10
             for op in relevant
         )
         if has_unitarity_violation:
