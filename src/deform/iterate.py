@@ -1,17 +1,16 @@
 """
 Iterative deformation engine: depth 0 (seeds) -> depth 1 -> ... -> depth 5.
 
-For each consistent theory at depth n:
-1. Enumerate relevant (R<2) and super-relevant (R<4/3) GIO degrees from PE
-2. For each relevant degree: direct deformation dW = O (one per inequivalent degree)
-3. For each super-relevant degree: flip dW = M*O (adds singlet M)
-4. Run a-maximization on each candidate at depth n+1
-5. Compute PE + classify operators for consistent results
-6. Repeat until depth 5
-
-For W=0 seeds, operators at the same degree are related by flavor symmetry,
-so there is one inequivalent deformation per degree. For W!=0, deduplication
-via graph isomorphism (toGlobalGraph) would be needed — simplified here.
+Full pipeline at each depth:
+1. Orbit decomposition (fields grouped by residual flavor symmetry)
+2. Orbit-aware PE (Hilbert series with orbit fugacities)
+3. Monomial expansion (PE degrees -> explicit monomials)
+4. F-term reduction (GroebnerBasis via Mathematica)
+5. Classify: relevant (R<2), super-relevant (R<4/3), unitarity-violating (R<=2/3)
+6. Generate deformations (direct + flip) from each relevant/super-relevant operator
+7. Deduplicate via graph isomorphism
+8. Run a-maximization on candidates (parallel)
+9. Repeat
 """
 
 import json
@@ -19,14 +18,20 @@ import subprocess
 import sys
 import os
 import time
+import ast
 import multiprocessing as mp
 from fractions import Fraction
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from hilbert.hilbert import compute_hilbert_series
+from hilbert.orbits import compute_orbits, orbits_to_pe_input
+from hilbert.invariants import get_contraction_type
+from hilbert.monomials import generate_all_operators
 from deform.equivalence import deduplicate_theories
 
 AMAX_PATH = "src/amax/FindCharges.wl"
+REDUCE_PATH = "src/amax/ReduceOperators.wl"
+
 
 def _amax_worker(args):
     """Worker function for parallel a-maximization."""
@@ -84,185 +89,285 @@ Do[
     return result
 
 
+def run_reduce_operators(monomial_strs, field_names, w_terms, r_charges):
+    """Call ReduceAndClassify via wolframscript. Returns classified operators."""
+    mono_mma = '{' + ','.join(f'"{m}"' for m in monomial_strs) + '}'
+    fields_mma = '{' + ','.join(f'"{f}"' for f in field_names) + '}'
+    w_mma = '{' + ','.join(f'"{t}"' for t in w_terms) + '}'
+    rc_mma = '<|' + ','.join(f'"{k}"->{v}' for k, v in r_charges.items()) + '|>'
+
+    mcode = f"""
+Get["{REDUCE_PATH}"];
+result = ReduceAndClassify[{mono_mma}, {fields_mma}, {w_mma}, {rc_mma}];
+Print[result["n_relevant"]];
+Print[result["n_flippable"]];
+Print[result["n_unitarity_violating"]];
+Do[Print[r[[1]], " ||| ", r[[2]]], {{r, result["relevant_with_R"]}}];
+"""
+    try:
+        proc = subprocess.run(
+            ['wolframscript', '-code', mcode],
+            capture_output=True, encoding='UTF-8', timeout=120
+        )
+    except subprocess.TimeoutExpired:
+        return None
+
+    lines = [l.strip() for l in proc.stdout.split('\n')
+             if l.strip() and not l.startswith('Failed')]
+    if len(lines) < 3:
+        return None
+
+    n_relevant = int(lines[0])
+    n_flippable = int(lines[1])
+    n_unitarity = int(lines[2])
+
+    relevant_ops = []
+    flippable_ops = []
+    for line in lines[3:]:
+        if ' ||| ' in line:
+            mono, r_val = line.split(' ||| ')
+            R = float(r_val.split('`')[0]) if '`' in r_val else float(r_val)
+            relevant_ops.append({'monomial': mono, 'R': R})
+            if 2/3 + 1e-10 < R < 4/3:
+                flippable_ops.append({'monomial': mono, 'R': R})
+
+    return {
+        'n_relevant': n_relevant,
+        'n_flippable': n_flippable,
+        'n_unitarity_violating': n_unitarity,
+        'relevant': relevant_ops,
+        'flippable': flippable_ops,
+    }
+
+
 def parse_float(s):
     """Parse Mathematica-style float (with backtick precision)."""
     return float(s.split('`')[0])
 
 
-def get_pe_operators(lie_group, dynkin_labels, multiplicities, order=6):
-    """Compute PE and return parsed operator list."""
-    import ast
-    hs = compute_hilbert_series(lie_group, dynkin_labels, multiplicities, order, compute_pl=False)
-    operators = []
-    for item_str in hs['pe_raw']:
-        matrix = ast.literal_eval(item_str)
-        if isinstance(matrix[0], list):
-            for row in matrix:
-                operators.append((tuple(row[:-1]), row[-1]))
-        else:
-            operators.append((tuple(matrix[:-1]), matrix[-1]))
-    return operators
+def get_theory_operators(group, theory, all_reps, hs_order=6):
+    """Full operator enumeration for a theory using orbit-aware PE.
 
-
-def classify_pe_ops(operators, rcharges_per_type):
-    """Classify PE operators by R-charge. Returns relevant and super-relevant degrees."""
-    relevant = []       # R < 2
-    super_relevant = []  # R < 4/3
-
-    for degree, mult in operators:
-        if all(d == 0 for d in degree):
-            continue
-        R = sum(d * r for d, r in zip(degree, rcharges_per_type))
-        if R < 2:
-            relevant.append({'degree': degree, 'mult': mult, 'R': R})
-        if R < 4/3:
-            super_relevant.append({'degree': degree, 'mult': mult, 'R': R})
-
-    return relevant, super_relevant
-
-
-def build_monomial_str(degree, rep_names, copy_start=1):
-    """Build a representative monomial string from a degree vector.
-
-    E.g. degree=(2,1) with names=['q','phi'] -> 'q1*q2*phi1'
+    Returns:
+        dict with 'relevant', 'flippable', 'has_unitarity_violation', or None on failure
     """
-    parts = []
-    for i, d in enumerate(degree):
-        for j in range(d):
-            parts.append(f"{rep_names[i]}{copy_start + j}")
-    return '*'.join(parts)
+    matter = theory['matter']
+    w = theory.get('w', [])
+    rcharges_raw = theory.get('rcharges', {})
+    stored_repinfo = theory.get('repinfo', [])
+
+    # Parse R-charges and build field lists using repinfo names
+    r_charges = {}
+    all_fields = []
+    rep_type_to_dynkin = {}
+    singlet_prefixes = set()
+
+    # Build from stored repinfo if available (preserves naming like M0, r0, etc.)
+    if stored_repinfo:
+        for ri_idx, (name, T_R, dim_r, n) in enumerate(stored_repinfo):
+            is_singlet = (str(T_R) == '0' and dim_r == 1)
+            if is_singlet:
+                singlet_prefixes.add(name)
+            for copy in range(1, n + 1):
+                fname = f"{name}{copy}"
+                all_fields.append(fname)
+                rk = rcharges_raw.get(fname)
+                r_charges[fname] = parse_float(rk) if rk else 0.5
+            # Find Dynkin label from matter
+            # Match repinfo to matter: repinfo may have more entries (R + Rbar for complex)
+            dl = None
+            for midx, (label, mn, reality, md) in enumerate(matter):
+                if f"r{midx}" == name or name == f"r{midx}b":
+                    dl = label
+                    break
+                # Also check singlet names like M0, M1, etc.
+                if is_singlet and all(x == 0 for x in label):
+                    dl = label
+                    break
+            if dl is None:
+                dl = [0]  # fallback: singlet
+            rep_type_to_dynkin[name] = dl
+    else:
+        # Build from matter (depth 0 seeds)
+        for midx, (label, n, reality, dim_r) in enumerate(matter):
+            rep_type = f"r{midx}"
+            T_R_data = None
+            for r in all_reps[group]['reps']:
+                if tuple(r['dynkin_label']) == tuple(label):
+                    T_R_data = r['T_R']
+                    break
+            if T_R_data is None and all(x == 0 for x in label):
+                T_R_data = '0'
+                singlet_prefixes.add(rep_type)
+
+            if reality == 'complex':
+                for copy in range(1, n + 1):
+                    fname = f"{rep_type}{copy}"
+                    all_fields.append(fname)
+                    rk = rcharges_raw.get(fname)
+                    r_charges[fname] = parse_float(rk) if rk else 0.5
+                rep_type_to_dynkin[rep_type] = label
+                rep_type_b = f"r{midx}b"
+                conj_label = label
+                for r in all_reps[group]['reps']:
+                    if tuple(r['dynkin_label']) == tuple(label) and r.get('contragr'):
+                        conj_label = r['contragr']
+                        break
+                for copy in range(1, n + 1):
+                    fname = f"{rep_type_b}{copy}"
+                    all_fields.append(fname)
+                    rk = rcharges_raw.get(fname)
+                    r_charges[fname] = parse_float(rk) if rk else 0.5
+                rep_type_to_dynkin[rep_type_b] = conj_label
+            else:
+                is_singlet = all(x == 0 for x in label)
+                if is_singlet:
+                    singlet_prefixes.add(rep_type)
+                for copy in range(1, n + 1):
+                    fname = f"{rep_type}{copy}"
+                    all_fields.append(fname)
+                    rk = rcharges_raw.get(fname)
+                    r_charges[fname] = parse_float(rk) if rk else 0.5
+                rep_type_to_dynkin[rep_type] = label
+
+    # 1. Orbit decomposition
+    orbits = compute_orbits(all_fields, w, singlet_prefixes=singlet_prefixes)
+
+    # 2. Orbit-aware PE
+    pe_labels, pe_mults, pe_oidx = orbits_to_pe_input(orbits, rep_type_to_dynkin)
+
+    if not pe_labels:
+        # All singlets — no gauge-charged fields
+        pe_degrees = []
+    else:
+        hs = compute_hilbert_series(group, pe_labels, pe_mults, order=hs_order, compute_pl=False)
+        pe_degrees = []
+        for item_str in hs['pe_raw']:
+            matrix = ast.literal_eval(item_str)
+            rows = matrix if isinstance(matrix[0], list) else [matrix]
+            for row in rows:
+                pe_degrees.append((tuple(row[:-1]), row[-1]))
+
+    # 3. Build orbit info for monomial expansion
+    gauge_orbits = []
+    for pi, oi in enumerate(pe_oidx):
+        o = orbits[oi]
+        dl = rep_type_to_dynkin.get(o['rep_type'], [0])
+        ct = get_contraction_type(group, dl) if not o['is_singlet'] else 'any'
+        gauge_orbits.append({
+            'fields': o['fields'],
+            'rep_idx': pi,
+            'contraction': ct,
+            'is_singlet': False,
+        })
+
+    singlet_fields = [f for o in orbits if o['is_singlet'] for f in o['fields']]
+
+    # 4. Generate monomials (before F-term)
+    ops = generate_all_operators(gauge_orbits, pe_degrees, {}, r_charges,
+                                 singlet_fields=singlet_fields, max_R=2.0)
+
+    if not ops and not singlet_fields:
+        return {'relevant': [], 'flippable': [], 'has_unitarity_violation': False}
+
+    # 5. F-term reduction via Mathematica
+    mono_strs = [op['monomial'] for op in ops]
+    if not mono_strs:
+        return {'relevant': [], 'flippable': [], 'has_unitarity_violation': False}
+
+    reduced = run_reduce_operators(mono_strs, all_fields, w, r_charges)
+    if reduced is None:
+        return None
+
+    has_viol = reduced['n_unitarity_violating'] > 0
+
+    return {
+        'relevant': reduced['relevant'],
+        'flippable': reduced['flippable'],
+        'has_unitarity_violation': has_viol,
+        'n_relevant': reduced['n_relevant'],
+        'n_flippable': reduced['n_flippable'],
+    }
 
 
 def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=6):
-    """Process one depth level: generate candidates at depth+1.
-
-    Args:
-        group: LiE group name
-        seeds_at_depth: list of theory dicts at current depth
-        all_reps: rep data from all_reps.json
-        depth: current depth
-        max_depth: stop at this depth
-        hs_order: Hilbert series truncation order
-
-    Returns:
-        list of consistent theory dicts at depth+1
-    """
+    """Process one depth level: generate candidates at depth+1."""
     if depth >= max_depth:
         return []
 
     dimG, Tadj = GROUP_DATA[group]
-    rep_data = {tuple(r['dynkin_label']): r for r in all_reps[group]['reps']}
-
-    candidates = []  # (repinfo, w_list, description)
+    candidates = []
 
     for theory in seeds_at_depth:
         if theory.get('consistency', 'consistent') != 'consistent':
             continue
 
-        matter = theory['matter']
-        w = theory.get('w', [])
-        rcharges = theory.get('rcharges', {})
+        # Get operators via orbit-aware PE + F-term reduction
+        op_result = get_theory_operators(group, theory, all_reps, hs_order)
+        if op_result is None:
+            continue
 
-        # Build rep info for Hilbert series (gauge-charged only)
-        hs_labels = []
-        hs_mults = []
-        hs_names = []
-        hs_rcharges = []
-
-        repinfo = []  # for FindCharges
-        rep_names_for_monomial = []
-
-        for midx, (label, n, reality, dim_r) in enumerate(matter):
-            r_key = f"r{midx}1"
-            r_charge = 0.5
-            for k, v in rcharges.items():
-                if k == r_key or (k.startswith(f"r{midx}") and 'b' not in k):
-                    try:
-                        r_charge = parse_float(v)
-                    except:
-                        pass
-                    break
-
-            T_R_str = rep_data.get(tuple(label), {}).get('T_R', '1/2')
-            T_R = str(Fraction(T_R_str))
-
-            if reality == 'complex':
-                name_r = f"r{midx}"
-                name_rb = f"r{midx}b"
-                repinfo.append((name_r, T_R, dim_r, n))
-                repinfo.append((name_rb, T_R, dim_r, n))
-
-                conj = rep_data.get(tuple(label), {}).get('contragr', label)
-                hs_labels.append(label)
-                hs_mults.append(n)
-                hs_names.append(name_r)
-                hs_rcharges.append(r_charge)
-                hs_labels.append(conj if conj else label)
-                hs_mults.append(n)
-                hs_names.append(name_rb)
-                hs_rcharges.append(r_charge)
-                rep_names_for_monomial.extend([name_r, name_rb])
-            else:
-                name_r = f"r{midx}"
-                repinfo.append((name_r, T_R, dim_r, n))
-                hs_labels.append(label)
-                hs_mults.append(n)
-                hs_names.append(name_r)
-                hs_rcharges.append(r_charge)
-                rep_names_for_monomial.append(name_r)
-
-        # Compute PE and classify operators
-        operators = get_pe_operators(group, hs_labels, hs_mults, order=hs_order)
-        relevant, super_relevant = classify_pe_ops(operators, hs_rcharges)
-
-        # Check for unitarity violations (R <= 2/3, matching Nf=2N.nb convention)
-        has_unitarity_violation = any(
-            sum(d * r for d, r in zip(op['degree'], hs_rcharges)) <= 2/3 + 1e-10
-            for op in relevant
-        )
-        if has_unitarity_violation:
+        if op_result['has_unitarity_violation']:
             theory['consistency'] = 'operator decoupled'
             continue
 
-        # Generate direct deformations: one per relevant degree
-        for op in relevant:
-            monomial = build_monomial_str(op['degree'], hs_names)
-            new_w = w + [monomial]
+        matter = theory['matter']
+        w = theory.get('w', [])
+        repinfo = theory.get('repinfo', [])
+
+        # If repinfo not stored, rebuild it
+        if not repinfo:
+            for midx, (label, n, reality, dim_r) in enumerate(matter):
+                T_R_data = '0'
+                for r in all_reps[group]['reps']:
+                    if tuple(r['dynkin_label']) == tuple(label):
+                        T_R_data = r['T_R']
+                        break
+                rep_type = f"r{midx}"
+                if reality == 'complex':
+                    conj_label = label
+                    for r in all_reps[group]['reps']:
+                        if tuple(r['dynkin_label']) == tuple(label) and r.get('contragr'):
+                            conj_label = r['contragr']
+                            break
+                    repinfo.append((rep_type, str(Fraction(T_R_data)), dim_r, n))
+                    repinfo.append((f"r{midx}b", str(Fraction(T_R_data)), dim_r, n))
+                else:
+                    repinfo.append((rep_type, str(Fraction(T_R_data)), dim_r, n))
+
+        # Generate direct deformations
+        for op in op_result['relevant']:
+            new_w = w + [op['monomial']]
             candidates.append({
                 'repinfo': list(repinfo),
                 'matter': list(matter),
                 'w': new_w,
                 'parent_desc': theory.get('description', ''),
                 'deform_type': 'direct',
-                'deform_op': monomial,
+                'deform_op': op['monomial'],
                 'deform_R': op['R'],
             })
 
-        # Generate flip deformations: one per super-relevant degree
-        n_singlets = sum(1 for _, _, r, _ in matter if r == 'real' and _ == 1)  # rough count
-        flip_idx = len(matter)  # index for new singlet
-
-        for op in super_relevant:
-            monomial = build_monomial_str(op['degree'], hs_names)
+        # Generate flip deformations
+        for op in op_result['flippable']:
+            flip_idx = len(matter)
+            rank = len(matter[0][0]) if matter else 1
+            singlet_label = [0] * rank
             singlet_name = f"M{flip_idx}"
-            flip_term = f"{singlet_name}1*{monomial}"
-
-            # New matter: add one singlet
-            new_matter = list(matter) + [([0] * len(matter[0][0]) if matter else [0], 1, 'real', 1)]
-            new_repinfo = list(repinfo) + [(singlet_name, 0, 1, 1)]
-            new_w = w + [flip_term]
-
+            new_repinfo = list(repinfo) + [(singlet_name, '0', 1, 1)]
+            new_matter = list(matter) + [(singlet_label, 1, 'real', 1)]
+            new_w = w + [f"{singlet_name}1*{op['monomial']}"]
             candidates.append({
                 'repinfo': new_repinfo,
                 'matter': new_matter,
                 'w': new_w,
                 'parent_desc': theory.get('description', ''),
                 'deform_type': 'flip',
-                'deform_op': monomial,
+                'deform_op': op['monomial'],
                 'deform_R': op['R'],
             })
 
-    # Deduplicate candidates before running a-maximization
+    # Deduplicate
     n_before = len(candidates)
     candidates = deduplicate_theories(candidates)
     n_after = len(candidates)
@@ -271,18 +376,20 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
           f"{n_after} after dedup, from {len(seeds_at_depth)} theories")
 
     # Run a-maximization in parallel
-    n_workers = min(mp.cpu_count(), len(candidates))
+    n_workers = min(mp.cpu_count(), len(candidates)) if candidates else 1
 
     work_items = [
         (dimG, Tadj, cand['repinfo'], cand['w'])
         for cand in candidates
     ]
 
-    print(f"  Running a-maximization on {len(candidates)} candidates "
-          f"with {n_workers} workers...")
-
-    with mp.Pool(n_workers) as pool:
-        amax_results = pool.map(_amax_worker, work_items)
+    if work_items:
+        print(f"  Running a-maximization on {len(candidates)} candidates "
+              f"with {n_workers} workers...")
+        with mp.Pool(n_workers) as pool:
+            amax_results = pool.map(_amax_worker, work_items)
+    else:
+        amax_results = []
 
     # Collect consistent results
     results = []
@@ -290,6 +397,7 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
         if result['consistency'] == 'consistent':
             result['matter'] = cand['matter']
             result['w'] = cand['w']
+            result['repinfo'] = cand['repinfo']
             result['depth'] = depth + 1
             result['parent'] = cand['parent_desc']
             result['deform_type'] = cand['deform_type']
@@ -297,8 +405,8 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
             result['description'] = f"{cand['parent_desc']} + {cand['deform_type']}({cand['deform_op']})"
             result['rcharges'] = {k: v for k, v in result.items()
                                   if k not in ('consistency', 'a', 'c', 'matter', 'w',
-                                              'depth', 'parent', 'deform_type', 'deform_op',
-                                              'description')}
+                                              'repinfo', 'depth', 'parent', 'deform_type',
+                                              'deform_op', 'description')}
             results.append(result)
 
     print(f"  {len(results)}/{len(candidates)} consistent")
@@ -313,16 +421,14 @@ if __name__ == '__main__':
 
     group = sys.argv[1] if len(sys.argv) > 1 else 'G2'
     max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    seed_idx = int(sys.argv[3]) if len(sys.argv) > 3 else None  # optional: single seed index (0-based)
+    seed_idx = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
     if group not in seeds_data:
         print(f"No seeds for {group}")
         sys.exit(1)
 
     print(f"Iterating {group} to depth {max_depth}")
-    dimG, Tadj = GROUP_DATA[group]
 
-    # Convert seeds to the format expected by iterate_depth
     all_seeds = seeds_data[group]
     if seed_idx is not None:
         all_seeds = [all_seeds[seed_idx]]
