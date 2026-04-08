@@ -271,7 +271,7 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
           f"{n_after} after dedup, from {len(seeds_at_depth)} theories")
 
     # Run a-maximization in parallel
-    n_workers = min(mp.cpu_count(), len(candidates), 8)
+    n_workers = min(mp.cpu_count(), len(candidates))
 
     work_items = [
         (dimG, Tadj, cand['repinfo'], cand['w'])
