@@ -19,6 +19,7 @@ import subprocess
 import sys
 import os
 import time
+import multiprocessing as mp
 from fractions import Fraction
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -26,6 +27,12 @@ from hilbert.hilbert import compute_hilbert_series
 from deform.equivalence import deduplicate_theories
 
 AMAX_PATH = "src/amax/FindCharges.wl"
+
+def _amax_worker(args):
+    """Worker function for parallel a-maximization."""
+    dimG_, Tadj_, repinfo_, w_ = args
+    return run_findcharges(dimG_, Tadj_, repinfo_, w_)
+
 
 GROUP_DATA = {
     'A1': (3, 2), 'A2': (8, 3), 'A3': (15, 4), 'A4': (24, 5),
@@ -263,11 +270,23 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
     print(f"  Depth {depth} -> {depth+1}: {n_before} candidates, "
           f"{n_after} after dedup, from {len(seeds_at_depth)} theories")
 
-    # Run a-maximization on each candidate
-    results = []
-    for i, cand in enumerate(candidates):
-        result = run_findcharges(dimG, Tadj, cand['repinfo'], cand['w'])
+    # Run a-maximization in parallel
+    n_workers = min(mp.cpu_count(), len(candidates), 8)
 
+    work_items = [
+        (dimG, Tadj, cand['repinfo'], cand['w'])
+        for cand in candidates
+    ]
+
+    print(f"  Running a-maximization on {len(candidates)} candidates "
+          f"with {n_workers} workers...")
+
+    with mp.Pool(n_workers) as pool:
+        amax_results = pool.map(_amax_worker, work_items)
+
+    # Collect consistent results
+    results = []
+    for cand, result in zip(candidates, amax_results):
         if result['consistency'] == 'consistent':
             result['matter'] = cand['matter']
             result['w'] = cand['w']
@@ -282,9 +301,7 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
                                               'description')}
             results.append(result)
 
-        if (i + 1) % 10 == 0 or i == len(candidates) - 1:
-            print(f"    [{i+1}/{len(candidates)}] {len(results)} consistent so far")
-
+    print(f"  {len(results)}/{len(candidates)} consistent")
     return results
 
 
