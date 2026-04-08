@@ -19,13 +19,19 @@ Graph construction:
 import re
 from collections import Counter
 import networkx as nx
-from networkx.algorithms.isomorphism import GraphMatcher
+from networkx.algorithms.isomorphism import GraphMatcher, MultiGraphMatcher
 
 
 def parse_monomial(term_str):
-    """Parse a monomial string like 'r01*r02*r11' into {field: power} dict."""
-    fields = term_str.split('*')
-    return dict(Counter(fields))
+    """Parse a monomial string like 'r01*r02*r11' or 'r06^2*r07^2' into {field: power} dict."""
+    result = Counter()
+    for factor in term_str.split('*'):
+        if '^' in factor:
+            base, exp = factor.split('^', 1)
+            result[base] += int(exp)
+        else:
+            result[factor] += 1
+    return dict(result)
 
 
 def extract_rep_type(field_name):
@@ -50,7 +56,7 @@ def build_theory_graph(w_terms, matter_info=None):
     Returns:
         networkx.Graph with node attributes for matching
     """
-    G = nx.Graph()
+    G = nx.MultiGraph()
 
     # Collect all fields
     all_fields = set()
@@ -113,7 +119,7 @@ def are_equivalent(w1, w2, matter1=None, matter2=None):
         return False
 
     # Graph isomorphism with node type matching
-    matcher = GraphMatcher(G1, G2, node_match=node_match)
+    matcher = MultiGraphMatcher(G1, G2, node_match=node_match)
     return matcher.is_isomorphic()
 
 
@@ -169,6 +175,50 @@ def deduplicate_theories(theories):
                     break
             if not is_dup:
                 representatives.append(t)
+        unique.extend(representatives)
+
+    return unique
+
+
+def deduplicate_operators(operators, w_terms):
+    """Deduplicate operators by comparing toGlobalGraph(W + [op]).
+
+    Two operators are equivalent if appending them to W gives isomorphic graphs.
+    This is the Nf=2N.nb approach:
+      DeleteDuplicatesBy[ops, toGlobalGraph[Append[w, ToString[#]]] &]
+
+    Args:
+        operators: list of operator dicts with 'monomial' key
+        w_terms: current W terms (list of strings)
+
+    Returns:
+        list of unique operator dicts (one representative per equivalence class)
+    """
+    if not operators:
+        return []
+
+    # Group by canonical hash of W + [op]
+    by_hash = {}
+    for op in operators:
+        w_ext = w_terms + [op['monomial']]
+        h = canonical_hash(w_ext)
+        if h not in by_hash:
+            by_hash[h] = []
+        by_hash[h].append(op)
+
+    unique = []
+    for h, group in by_hash.items():
+        representatives = []
+        for op in group:
+            is_dup = False
+            w_ext = w_terms + [op['monomial']]
+            for rep in representatives:
+                w_ext_rep = w_terms + [rep['monomial']]
+                if are_equivalent(w_ext, w_ext_rep):
+                    is_dup = True
+                    break
+            if not is_dup:
+                representatives.append(op)
         unique.extend(representatives)
 
     return unique
