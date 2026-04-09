@@ -260,14 +260,18 @@ class GIOCache:
         Returns:
             list of monomial strings with R < max_R, or None if validation fails
         """
-        # Determine required order from min R
+        # Determine required order from min R, with cap
+        MAX_ORDER = 8  # cap to avoid combinatorial explosion
         gauge_r = [r_charges.get(f, 1.0) for f in self.all_gauge_fields]
         if gauge_r:
             min_R = min(gauge_r)
-            required_order = math.ceil(max_R / min_R) if min_R > 0 else 4
+            if min_R <= 0:
+                return None  # non-positive R-charge, theory is inconsistent
+            required_order = math.ceil(max_R / min_R)
         else:
             required_order = 4
         required_order = max(required_order, 4)  # minimum order 4
+        required_order = min(required_order, MAX_ORDER)  # cap
 
         # Build/extend if needed
         if required_order > self.max_order_built:

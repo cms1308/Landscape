@@ -384,10 +384,17 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
                                               'deform_op', 'description')}
 
             # GIO unitarity check: before declaring consistent,
-            # verify no operator has R <= 2/3
-            op_check = get_theory_operators(group, result, all_reps)
-            if op_check is not None and op_check['has_unitarity_violation']:
-                result['consistency'] = 'operator decoupled'
+            # verify no operator has R <= 2/3.
+            # Only check if basic a-max consistency passed.
+            try:
+                op_check = get_theory_operators(group, result, all_reps)
+                if op_check is not None and op_check['has_unitarity_violation']:
+                    result['consistency'] = 'operator decoupled'
+                    n_decoupled += 1
+                    continue
+            except Exception as e:
+                print(f"    GIO check failed: {e}")
+                result['consistency'] = 'gio_check_failed'
                 n_decoupled += 1
                 continue
 
