@@ -301,6 +301,28 @@ class GIOCache:
             if our_mult == pe_mult:
                 explanation += f" = PE({pe_mult})"
 
+            # Add reasoning for each multiplicity value
+            mult_reasons = []
+            for m in sorted(mult_breakdown.keys()):
+                count = mult_breakdown[m]
+                if m == 1:
+                    mult_reasons.append(
+                        f"  mult {m}: {count} monomials with repeated fields "
+                        f"(1 unique factorization into primitive pairs)")
+                elif m == 2:
+                    mult_reasons.append(
+                        f"  mult {m}: {count} monomials with all distinct fields "
+                        f"(3 factorizations into primitive pairs, "
+                        f"1 Schouten/Plucker relation, "
+                        f"= 2 independent gauge invariants)")
+                elif m > 2:
+                    mult_reasons.append(
+                        f"  mult {m}: {count} monomials "
+                        f"({m+1} factorizations, {1} relation, "
+                        f"= {m} independent gauge invariants)")
+            if mult_reasons:
+                explanation += "\n" + "\n".join(mult_reasons)
+
             matching[str(degree)] = {
                 'monomials': our_mono,
                 'with_multiplicity': our_mult,

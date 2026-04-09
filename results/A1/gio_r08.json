@@ -369,14 +369,14 @@
         "with_multiplicity": 28,
         "PE": 28,
         "status": "EXACT",
-        "explanation": "28 monomials x mult 1 = 28 = 28 = PE(28)"
+        "explanation": "28 monomials x mult 1 = 28 = 28 = PE(28)\n  mult 1: 28 monomials with repeated fields (1 unique factorization into primitive pairs)"
       },
       "(4,)": {
         "monomials": 266,
         "with_multiplicity": 336,
         "PE": 336,
         "status": "EXACT",
-        "explanation": "196 monomials x mult 1 = 196 + 70 monomials x mult 2 = 140 = 336 = PE(336)"
+        "explanation": "196 monomials x mult 1 = 196 + 70 monomials x mult 2 = 140 = 336 = PE(336)\n  mult 1: 196 monomials with repeated fields (1 unique factorization into primitive pairs)\n  mult 2: 70 monomials with all distinct fields (3 factorizations into primitive pairs, 1 Schouten/Plucker relation, = 2 independent gauge invariants)"
       }
     }
   },
