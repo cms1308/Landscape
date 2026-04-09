@@ -165,6 +165,108 @@ def build_invariant_catalog(lie_group, dynkin_labels, max_degree=6):
     }
 
 
+@lru_cache(maxsize=1024)
+def singlet_in_multi_tensor(lie_group, *label_strs):
+    """Check if trivial rep appears in the tensor product of multiple reps.
+
+    Uses LiE's tensor(vec, vec, grp) iteratively: decompose R1⊗R2 into
+    components, then tensor each component with R3, etc. Count total singlets.
+
+    Args:
+        lie_group: e.g. "A3"
+        *label_strs: Dynkin labels as strings, e.g. "[1,0,0]", "[0,0,1]", "[1,0,1]"
+
+    Returns:
+        int: multiplicity of trivial rep in the tensor product
+    """
+    if len(label_strs) == 0:
+        return 1
+    if len(label_strs) == 1:
+        code = f"setdefault {lie_group}\nz = null(Lie_rank)\nprint(1X{label_strs[0]}|z)\n"
+        lines = lie_eval(code)
+        try:
+            return int(lines[0])
+        except (IndexError, ValueError):
+            return 0
+
+    # Iterative tensor product via LiE.
+    # LiE's tensor(vec, vec, grp) decomposes R1⊗R2 into irreps.
+    # For 3+ reps: decompose R1⊗R2, extract each irrep component,
+    # tensor each with R3, sum up, repeat.
+    # Use LiE's dom_chars to extract components from a polynomial.
+
+    # Build LiE code that iterates:
+    # Step 1: t = tensor(R1, R2, G)  → polynomial
+    # Step 2: for each irrep V in t with coefficient c:
+    #           accumulate c * tensor(V, R3, G)
+    # Step 3: repeat with R4, etc.
+    # Final: count singlets via |z
+
+    code = f"setdefault {lie_group}\nz = null(Lie_rank)\n"
+
+    if len(label_strs) == 2:
+        code += f"t = tensor({label_strs[0]}, {label_strs[1]}, {lie_group})\n"
+        code += "print(t|z)\n"
+    else:
+        # Start with tensor of first two
+        code += f"t = tensor({label_strs[0]}, {label_strs[1]}, {lie_group})\n"
+        # For each additional rep, expand using expon(poly, j) and length(poly)
+        for i in range(2, len(label_strs)):
+            code += f"""new_t = 0*1X z
+for j = 1 to length(t) do
+  new_t = new_t + (t | expon(t,j)) * tensor(expon(t,j), {label_strs[i]}, {lie_group})
+od
+t = new_t
+"""
+        code += "print(t|z)\n"
+
+    lines = lie_eval(code)
+    try:
+        return int(lines[0])
+    except (IndexError, ValueError):
+        return 0
+
+
+def find_all_invariants(lie_group, dynkin_labels, max_degree=6):
+    """Find all gauge-invariant structures for combinations of rep types up to max_degree.
+
+    Checks all degree vectors (n1, n2, ..., nk) with sum <= max_degree.
+    For each, uses LiE tensor product to count trivials.
+
+    Args:
+        lie_group: LiE group name
+        dynkin_labels: list of Dynkin label lists, one per rep type
+        max_degree: max total degree to check
+
+    Returns:
+        dict mapping degree_tuple -> multiplicity of trivial in tensor product
+    """
+    from itertools import product as iprod
+    k = len(dynkin_labels)
+    label_strs = ['[' + ','.join(str(x) for x in dl) + ']' for dl in dynkin_labels]
+
+    results = {}
+    for degree in iprod(*(range(max_degree + 1) for _ in range(k))):
+        total = sum(degree)
+        if total < 2 or total > max_degree:
+            continue
+
+        # Build the list of rep labels for tensor product
+        # degree (n1, n2, ...) means n1 copies of R1, n2 copies of R2, ...
+        rep_list = []
+        for i, d in enumerate(degree):
+            rep_list.extend([label_strs[i]] * d)
+
+        if not rep_list:
+            continue
+
+        mult = singlet_in_multi_tensor(lie_group, *rep_list)
+        if mult > 0:
+            results[degree] = mult
+
+    return results
+
+
 if __name__ == '__main__':
     import sys
 
