@@ -21,7 +21,6 @@ sys.path.insert(0, _dir)
 sys.path.insert(0, os.path.join(_dir, '..'))
 from invariants import find_single_rep_invariants, find_mixed_rep_invariants
 from hilbert import compute_hilbert_series
-from orbits import compute_orbits, orbits_to_pe_input
 
 
 def enumerate_primitives_single(fields, degree, sym_type):
@@ -213,20 +212,29 @@ def _construct_gio_with_labels(lie_group, repinfo, rep_fields, all_fields,
             seen.add(key)
             unique_ops.append(op)
 
-    # 4. Validate against orbit-aware PE
-    orbits = compute_orbits(all_fields, w_terms,
-                            singlet_prefixes={name for name, T, d, n in repinfo
-                                              if str(T) == '0' and d == 1})
-    # Build rep_type_to_dynkin for orbits
-    rep_type_to_dynkin = {}
-    if dynkin_labels:
-        for i, name in enumerate(rep_names):
-            rep_type_to_dynkin[name] = dynkin_labels[i]
+    # 4. Validate against per-rep PE (one fugacity per rep type, fastest)
+    # Build per-rep PE input: group all gauge fields by Dynkin label
+    rep_type_labels = []  # unique Dynkin labels
+    rep_type_mults = []   # total multiplicity of each
+    rep_type_rcharges = []  # average R-charge per type
+    label_to_idx = {}
 
-    pe_labels, pe_mults, pe_oidx = orbits_to_pe_input(orbits, rep_type_to_dynkin)
+    for name in rep_names:
+        dl = tuple(dynkin_labels[rep_names.index(name)]) if dynkin_labels else None
+        if dl is None:
+            continue
+        if dl not in label_to_idx:
+            label_to_idx[dl] = len(rep_type_labels)
+            rep_type_labels.append(list(dl))
+            rep_type_mults.append(0)
+            avg_r = sum(r_charges.get(f, 0) for f in rep_fields[name]) / len(rep_fields[name])
+            rep_type_rcharges.append(avg_r)
+        label_to_idx_val = label_to_idx[dl]
+        rep_type_mults[label_to_idx_val] += len(rep_fields[name])
 
-    if pe_labels:
-        hs = compute_hilbert_series(lie_group, pe_labels, pe_mults, order=4, compute_pl=False)
+    if rep_type_labels:
+        hs = compute_hilbert_series(lie_group, rep_type_labels, rep_type_mults,
+                                     order=4, compute_pl=False)
         pe_degrees = {}
         for item_str in hs['pe_raw']:
             matrix = ast.literal_eval(item_str)
@@ -237,70 +245,46 @@ def _construct_gio_with_labels(lie_group, repinfo, rep_fields, all_fields,
                 if any(d > 0 for d in degree):
                     pe_degrees[degree] = mult
 
-        # Count our gauge-only operators per PE degree
-        # Map each monomial to its orbit degree vector
+        # Count our gauge-only operators per rep-type degree
         our_counts = defaultdict(int)
         for op in unique_ops:
-            fields = op.split('*')
-            # Only count gauge-charged operators
-            if any(f in singlet_fields for f in fields):
+            fields_in_op = op.split('*')
+            if any(f in singlet_fields for f in fields_in_op):
                 continue
-            # Compute orbit degree vector
-            degree = [0] * len(pe_oidx)
-            for f in fields:
-                for pi, oi in enumerate(pe_oidx):
-                    if f in orbits[oi]['fields']:
-                        degree[pi] += 1
+            degree = [0] * len(rep_type_labels)
+            for f in fields_in_op:
+                for name in rep_names:
+                    if f in rep_fields[name]:
+                        dl = tuple(dynkin_labels[rep_names.index(name)])
+                        degree[label_to_idx[dl]] += 1
                         break
             our_counts[tuple(degree)] += 1
 
-        # Compare: only check degrees with R < max_R
-        # Map orbit indices to R-charges for filtering
-        orbit_rcharges = []
-        for pi, oi in enumerate(pe_oidx):
-            o = orbits[oi]
-            avg_R = sum(r_charges.get(f, 0) for f in o['fields']) / len(o['fields'])
-            orbit_rcharges.append(avg_R)
-
+        # Exact match validation
         validation_passed = True
-        total_pe = 0
-        total_ours = 0
         for degree, pe_mult in pe_degrees.items():
-            # Check R of this degree
-            R_deg = sum(d * r for d, r in zip(degree, orbit_rcharges))
+            R_deg = sum(d * r for d, r in zip(degree, rep_type_rcharges))
             if R_deg >= max_R:
                 continue
-            total_pe += pe_mult
             our_mult = our_counts.get(degree, 0)
-            total_ours += our_mult
-            if our_mult < pe_mult:
-                # Mismatch: could be missing monomials OR multiplicity > 1
-                # Flag but distinguish: if our_mult > 0, it's likely mult>1 at some monomial
-                print(f"  PE VALIDATION: degree {degree} R={R_deg:.4f}: "
-                      f"PE={pe_mult}, ours={our_mult}, diff={pe_mult - our_mult}")
-                if our_mult == 0:
-                    print(f"    MISSING entirely — need new primitive!")
-                    validation_passed = False
-            elif our_mult > pe_mult:
-                print(f"  PE VALIDATION: degree {degree} R={R_deg:.4f}: "
-                      f"PE={pe_mult}, ours={our_mult} (extra {our_mult - pe_mult}, "
-                      f"will be removed by F-term)")
-
-        print(f"  PE total (R<{max_R}): {total_pe}, ours: {total_ours}")
-        if total_ours < total_pe:
-            diff = total_pe - total_ours
-            print(f"  GAP: {diff} operators. "
-                  f"Likely from multiplicity>1 at quartic monomials (gauge contraction degeneracy).")
-            # Check if the gap is entirely from mult>1 (no missing monomials)
-            missing_entirely = sum(1 for d, m in pe_degrees.items()
-                                   if our_counts.get(d, 0) == 0 and m > 0
-                                   and sum(di*ri for di, ri in zip(d, orbit_rcharges)) < max_R)
-            if missing_entirely > 0:
-                print(f"  {missing_entirely} degrees have ZERO operators — need new primitives!")
+            if our_mult != pe_mult:
+                print(f"  PE MISMATCH at degree {degree} R={R_deg:.4f}: "
+                      f"PE={pe_mult}, ours={our_mult}")
                 validation_passed = False
-            else:
-                print(f"  All PE degrees have at least one operator. Gap is from mult>1.")
-                print(f"  Proceeding (mult>1 doesn't affect deformation candidates).")
+
+        # Also check for extra operators we have but PE doesn't
+        for degree, our_mult in our_counts.items():
+            if degree not in pe_degrees and our_mult > 0:
+                R_deg = sum(d * r for d, r in zip(degree, rep_type_rcharges))
+                if R_deg < max_R:
+                    print(f"  EXTRA operators at degree {degree} R={R_deg:.4f}: "
+                          f"ours={our_mult}, PE=0")
+                    validation_passed = False
+
+        if validation_passed:
+            print(f"  PE validation PASSED (exact match at all degrees with R<{max_R})")
+        else:
+            print(f"  PE validation FAILED — STOPPING")
     else:
         validation_passed = True
 
