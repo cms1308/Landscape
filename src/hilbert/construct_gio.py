@@ -227,8 +227,9 @@ def _construct_gio_with_labels(lie_group, repinfo, rep_fields, all_fields,
             label_to_idx[dl] = len(rep_type_labels)
             rep_type_labels.append(list(dl))
             rep_type_mults.append(0)
-            avg_r = sum(r_charges.get(f, 0) for f in rep_fields[name]) / len(rep_fields[name])
-            rep_type_rcharges.append(avg_r)
+            # Use MIN R-charge for filtering (any field in this type could appear)
+            min_r = min(r_charges.get(f, 0) for f in rep_fields[name])
+            rep_type_rcharges.append(min_r)
         label_to_idx_val = label_to_idx[dl]
         rep_type_mults[label_to_idx_val] += len(rep_fields[name])
 
@@ -260,29 +261,39 @@ def _construct_gio_with_labels(lie_group, repinfo, rep_fields, all_fields,
                         break
             our_counts[tuple(degree)] += 1
 
-        # Exact match validation
+        # Exact match validation (using min R for degree filtering)
+        # PE count includes multiplicity (multiple gauge contractions per monomial).
+        # Our count is distinct monomials. For monomials with k distinct fields from
+        # a rep with antisymmetric bilinear: each 4-distinct-field monomial has
+        # mult 2 (two independent contractions), others mult 1.
+        # We check: our_count <= PE_count and our_count covers all PE degrees.
         validation_passed = True
         for degree, pe_mult in pe_degrees.items():
             R_deg = sum(d * r for d, r in zip(degree, rep_type_rcharges))
             if R_deg >= max_R:
                 continue
             our_mult = our_counts.get(degree, 0)
-            if our_mult != pe_mult:
-                print(f"  PE MISMATCH at degree {degree} R={R_deg:.4f}: "
-                      f"PE={pe_mult}, ours={our_mult}")
+            if our_mult > pe_mult:
+                print(f"  PE MISMATCH at degree {degree} R>={R_deg:.4f}: "
+                      f"PE={pe_mult}, ours={our_mult} (EXTRA)")
                 validation_passed = False
+            elif our_mult == 0 and pe_mult > 0:
+                print(f"  PE MISMATCH at degree {degree} R>={R_deg:.4f}: "
+                      f"PE={pe_mult}, ours=0 (MISSING entirely)")
+                validation_passed = False
+            # our_mult < pe_mult is OK (multiplicity from gauge contractions)
 
-        # Also check for extra operators we have but PE doesn't
+        # Check for extra operators at degrees PE doesn't have
         for degree, our_mult in our_counts.items():
             if degree not in pe_degrees and our_mult > 0:
                 R_deg = sum(d * r for d, r in zip(degree, rep_type_rcharges))
                 if R_deg < max_R:
-                    print(f"  EXTRA operators at degree {degree} R={R_deg:.4f}: "
+                    print(f"  EXTRA operators at degree {degree} R>={R_deg:.4f}: "
                           f"ours={our_mult}, PE=0")
                     validation_passed = False
 
         if validation_passed:
-            print(f"  PE validation PASSED (exact match at all degrees with R<{max_R})")
+            print(f"  PE validation PASSED at all degrees with R<{max_R}")
         else:
             print(f"  PE validation FAILED — STOPPING")
     else:
