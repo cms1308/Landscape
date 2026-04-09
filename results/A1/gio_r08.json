@@ -368,13 +368,15 @@
         "monomials": 28,
         "with_multiplicity": 28,
         "PE": 28,
-        "status": "EXACT"
+        "status": "EXACT",
+        "explanation": "28 monomials x mult 1 = 28 = 28 = PE(28)"
       },
       "(4,)": {
         "monomials": 266,
         "with_multiplicity": 336,
         "PE": 336,
-        "status": "EXACT"
+        "status": "EXACT",
+        "explanation": "196 monomials x mult 1 = 196 + 70 monomials x mult 2 = 140 = 336 = PE(336)"
       }
     }
   },

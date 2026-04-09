@@ -277,11 +277,36 @@ class GIOCache:
                 passed = False
             else:
                 status = "EXACT"
+
+            # Build multiplicity breakdown for explanation
+            mult_breakdown = defaultdict(int)
+            for op in products:
+                op_fields = op.split('*')
+                op_degree = [0] * len(self.pe_labels)
+                for f in op_fields:
+                    for name in self.rep_names:
+                        if f in self.rep_fields[name]:
+                            dl = tuple(self.dynkin_labels[self.rep_names.index(name)])
+                            op_degree[self._label_to_idx[dl]] += 1
+                            break
+                if tuple(op_degree) == degree:
+                    m = compute_multiplicity(op)
+                    mult_breakdown[m] += 1
+
+            explanation_parts = []
+            for m in sorted(mult_breakdown.keys()):
+                count = mult_breakdown[m]
+                explanation_parts.append(f"{count} monomials x mult {m} = {count * m}")
+            explanation = " + ".join(explanation_parts) + f" = {our_mult}"
+            if our_mult == pe_mult:
+                explanation += f" = PE({pe_mult})"
+
             matching[str(degree)] = {
                 'monomials': our_mono,
                 'with_multiplicity': our_mult,
                 'PE': pe_mult,
                 'status': status,
+                'explanation': explanation,
             }
 
         # Check for extras not in PE
