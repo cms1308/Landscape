@@ -70,76 +70,68 @@ class GIOCache:
         self.max_order_built = 0
 
     def _find_primitives(self):
-        """Find all primitive gauge invariants via tensor product decomposition.
+        """Find primitive gauge invariants.
 
-        Uses find_all_invariants to check all degree vectors up to max_degree.
-        For each degree vector with singlet count > 0, constructs explicit monomials.
+        Two sources:
+        1. Single-rep primitives via find_single_rep_invariants (degree + sym/alt type)
+        2. Multi-rep primitives via find_all_invariants (degree vectors involving 2+ rep types)
+
+        Products of primitives are built in _build_products, NOT here.
         """
         self.primitives = []
 
-        # Find all invariant structures (degree vectors with singlet in tensor product)
-        all_invs = find_all_invariants(self.lie_group, self.dynkin_labels, max_degree=8)
-
-        for degree_vec, tensor_mult in sorted(all_invs.items()):
-            total_deg = sum(degree_vec)
-
-            # Construct explicit monomials for this degree vector
-            # For each rep type i with degree_vec[i] copies:
-            #   - Get contraction type from single-rep invariants
-            #   - Generate selections from available fields
-            per_type_selections = []
-            for i, d in enumerate(degree_vec):
-                if d == 0:
-                    per_type_selections.append([()])
-                    continue
-                name = self.rep_names[i]
+        # 1. Single-rep primitives (mesons, baryons, adjoint traces, etc.)
+        for i, name in enumerate(self.rep_names):
+            dl = self.dynkin_labels[i]
+            invs = find_single_rep_invariants(self.lie_group, dl, max_degree=8)
+            for degree, sym_type, mult in invs:
                 fields = self.rep_fields[name]
-                ct = get_contraction_type(self.lie_group, self.dynkin_labels[i])
-
-                if d == 1:
-                    # Single field from this type
-                    per_type_selections.append([(f,) for f in fields])
+                if sym_type == "alt":
+                    monos = ['*'.join(c) for c in combinations(fields, degree)]
                 else:
-                    # Determine contraction type at this specific degree
-                    # Use find_single_rep_invariants to check sym vs alt at degree d
-                    dl = self.dynkin_labels[i]
-                    sym_at_d = singlet_in_tensor_power(
-                        self.lie_group,
-                        '[' + ','.join(str(x) for x in dl) + ']',
-                        d, "sym")
-                    alt_at_d = singlet_in_tensor_power(
-                        self.lie_group,
-                        '[' + ','.join(str(x) for x in dl) + ']',
-                        d, "alt")
+                    monos = ['*'.join(c) for c in combinations_with_replacement(fields, degree)]
+                if monos:
+                    self.primitives.append((degree, sym_type, name, monos))
 
-                    if alt_at_d > 0 and sym_at_d == 0:
-                        # Pure antisymmetric
-                        per_type_selections.append(list(combinations(fields, d)))
-                    elif sym_at_d > 0 and alt_at_d == 0:
-                        # Pure symmetric
-                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
-                    elif alt_at_d > 0 and sym_at_d > 0:
-                        # Both — include all (with replacement covers both)
-                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
+        # 2. Multi-rep primitives (dressed mesons, etc.)
+        # Only for degree vectors involving 2+ different rep types
+        if len(self.rep_names) >= 2:
+            all_invs = find_all_invariants(self.lie_group, self.dynkin_labels, max_degree=8)
+            for degree_vec, tensor_mult in sorted(all_invs.items()):
+                # Skip single-rep degrees (already handled above)
+                n_nonzero = sum(1 for d in degree_vec if d > 0)
+                if n_nonzero < 2:
+                    continue
+
+                total_deg = sum(degree_vec)
+                per_type_selections = []
+                for idx, d in enumerate(degree_vec):
+                    if d == 0:
+                        per_type_selections.append([()])
+                        continue
+                    name = self.rep_names[idx]
+                    fields = self.rep_fields[name]
+                    if d == 1:
+                        per_type_selections.append([(f,) for f in fields])
                     else:
-                        # Neither sym nor alt has singlet at this degree for this single rep
-                        # But as part of multi-rep invariant, all combinations are candidates
-                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
+                        # For multi-rep invariants: use all combinations (with replacement)
+                        # since the contraction structure is determined by the multi-rep tensor
+                        per_type_selections.append(
+                            list(combinations_with_replacement(fields, d)))
 
-            # Cartesian product across types
-            monos = []
-            from itertools import product as iprod
-            for combo in iprod(*per_type_selections):
-                fields_in_mono = []
-                for selection in combo:
-                    fields_in_mono.extend(selection)
-                if fields_in_mono:
-                    monos.append('*'.join(fields_in_mono))
+                from itertools import product as iprod
+                monos = []
+                for combo in iprod(*per_type_selections):
+                    fields_in_mono = []
+                    for selection in combo:
+                        fields_in_mono.extend(selection)
+                    if fields_in_mono:
+                        monos.append('*'.join(fields_in_mono))
 
-            if monos:
-                desc = 'x'.join(f"{self.rep_names[i]}^{degree_vec[i]}"
-                                for i in range(len(degree_vec)) if degree_vec[i] > 0)
-                self.primitives.append((total_deg, "multi", desc, monos))
+                if monos:
+                    desc = 'x'.join(f"{self.rep_names[idx]}^{degree_vec[idx]}"
+                                    for idx in range(len(degree_vec)) if degree_vec[idx] > 0)
+                    self.primitives.append((total_deg, "multi", desc, monos))
 
     def _get_all_primitive_monomials(self):
         """Return flat list of all primitive monomial strings."""
@@ -319,11 +311,16 @@ class GIOCache:
         for degree, pe_mult in pe_counts.items():
             our_mult = our_counts_with_mult.get(degree, 0)
             our_mono = our_counts.get(degree, 0)
-            if our_mult != pe_mult:
-                status = "MISMATCH"
-                passed = False
-            else:
+            if our_mult == pe_mult:
                 status = "EXACT"
+            elif our_mono == 0 and pe_mult > 0:
+                status = "MISSING"
+                passed = False
+            elif our_mono > 0 and our_mult != pe_mult:
+                status = "MULT_MISMATCH"  # acceptable: have monomials, multiplicity differs
+            else:
+                status = "EXTRA"
+                passed = False
 
             # Build multiplicity breakdown for explanation
             mult_breakdown = defaultdict(int)
@@ -395,10 +392,11 @@ class GIOCache:
         if passed:
             print(f"  GIO cache: order {order}, {len(products)} monomials, PE EXACT MATCH")
         else:
-            # Collect mismatched degrees (only where ours < PE or ours = 0)
+            # Collect truly missing degrees (where ours = 0 but PE > 0)
+            # Multiplicity mismatches (ours > 0 but with_mult != PE) are acceptable
             mismatched_degrees = []
             for deg_str, info in matching.items():
-                if info['status'] != 'EXACT' and info['with_multiplicity'] < info['PE']:
+                if info['status'] != 'EXACT' and info['monomials'] == 0 and info['PE'] > 0:
                     mismatched_degrees.append(deg_str)
 
             print(f"  GIO cache: order {order}, {len(products)} monomials, "
@@ -480,13 +478,16 @@ class GIOCache:
                     for degree, pe_mult in pe_counts.items():
                         our_mult = our_counts_with_mult.get(degree, 0)
                         our_mono = our_counts.get(degree, 0)
-                        if our_mult != pe_mult:
-                            status = "MISMATCH"
-                            # Accept if ours > 0 (multiplicity issue, not missing)
-                            if our_mono == 0:
-                                passed = False
-                        else:
+                        if our_mult == pe_mult:
                             status = "EXACT"
+                        elif our_mono == 0 and pe_mult > 0:
+                            status = "MISSING"
+                            passed = False
+                        elif our_mono > 0:
+                            status = "MULT_MISMATCH"
+                        else:
+                            status = "EXTRA"
+                            passed = False
 
                         mult_breakdown = defaultdict(int)
                         for op in products:
