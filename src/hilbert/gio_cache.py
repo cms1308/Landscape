@@ -211,39 +211,102 @@ class GIOCache:
         # Count our products by degree
         our_counts = self._count_products_by_degree(products)
 
-        # Validate: exact match (our <= PE, our > 0 where PE > 0)
+        # Compute multiplicity per monomial: count factorizations into primitive pairs
+        # For monomials that are products of antisymmetric pairs from the same rep:
+        #   - 4 distinct fields: 3 factorizations, 1 Schouten relation → mult = 2
+        #   - otherwise: mult = 1
+        # For mixed-rep products and other cases: mult = 1 (conservative)
+        prims = self._get_all_primitive_monomials()
+        prim_set = set(tuple(sorted(p.split('*'))) for p in prims)
+
+        def compute_multiplicity(mono_str):
+            """Count independent gauge invariants for this field content."""
+            fields = mono_str.split('*')
+            total_deg = len(fields)
+            if total_deg <= 2:
+                return 1  # primitives always mult 1
+
+            # For quartic (degree 4): count unique factorizations into 2 primitives
+            if total_deg == 4:
+                field_list = list(fields)
+                factorizations = set()
+                from itertools import combinations as comb
+                for pair in comb(range(4), 2):
+                    rest = [i for i in range(4) if i not in pair]
+                    p1 = tuple(sorted([field_list[pair[0]], field_list[pair[1]]]))
+                    p2 = tuple(sorted([field_list[rest[0]], field_list[rest[1]]]))
+                    if p1 in prim_set and p2 in prim_set:
+                        # Unordered pair of mesons
+                        fact = tuple(sorted([p1, p2]))
+                        factorizations.add(fact)
+                n_fact = len(factorizations)
+                if n_fact == 0:
+                    return 1  # primitive quartic
+                # Schouten: for n factorizations of 4 fields into 2 antisym pairs,
+                # there are n-1 relations → mult = 1 if n<=1, mult = n-1 if n>=2
+                if n_fact >= 2:
+                    return n_fact - 1
+                return 1
+
+            # For degree 6: count products of 3 primitives or
+            # (primitive × quartic). Conservative mult = 1.
+            return 1
+
+        # Count with multiplicity per degree
+        our_counts_with_mult = defaultdict(int)
         matching = {}
+        for op in products:
+            fields = op.split('*')
+            degree = [0] * len(self.pe_labels)
+            for f in fields:
+                for name in self.rep_names:
+                    if f in self.rep_fields[name]:
+                        dl = tuple(self.dynkin_labels[self.rep_names.index(name)])
+                        degree[self._label_to_idx[dl]] += 1
+                        break
+            mult = compute_multiplicity(op)
+            our_counts_with_mult[tuple(degree)] += mult
+
+        # Exact match validation
         passed = True
         for degree, pe_mult in pe_counts.items():
-            our_mult = our_counts.get(degree, 0)
-            if our_mult > pe_mult:
-                status = "EXTRA"
+            our_mult = our_counts_with_mult.get(degree, 0)
+            our_mono = our_counts.get(degree, 0)
+            if our_mult != pe_mult:
+                status = "MISMATCH"
                 passed = False
-            elif our_mult == 0 and pe_mult > 0:
-                status = "MISSING"
-                passed = False
-            elif our_mult == pe_mult:
-                status = "EXACT"
             else:
-                status = "OK"  # our < PE from multiplicity
-            matching[str(degree)] = (our_mult, pe_mult, status)
+                status = "EXACT"
+            matching[str(degree)] = {
+                'monomials': our_mono,
+                'with_multiplicity': our_mult,
+                'PE': pe_mult,
+                'status': status,
+            }
 
         # Check for extras not in PE
-        for degree, our_mult in our_counts.items():
+        for degree, our_mult in our_counts_with_mult.items():
             if degree not in pe_counts and our_mult > 0:
-                matching[str(degree)] = (our_mult, 0, "EXTRA")
+                matching[str(degree)] = {
+                    'monomials': our_counts.get(degree, 0),
+                    'with_multiplicity': our_mult,
+                    'PE': 0,
+                    'status': 'EXTRA',
+                }
                 passed = False
 
         self.matching_by_order[order] = matching
         self.max_order_built = max(self.max_order_built, order)
 
         if passed:
-            print(f"  GIO cache: order {order}, {len(products)} products, PE validation PASSED")
+            print(f"  GIO cache: order {order}, {len(products)} monomials, PE EXACT MATCH")
         else:
-            print(f"  GIO cache: order {order}, {len(products)} products, PE validation FAILED")
-            for deg_str, (ours, pe, status) in matching.items():
-                if status in ("MISSING", "EXTRA"):
-                    print(f"    {status} at degree {deg_str}: ours={ours}, PE={pe}")
+            print(f"  GIO cache: order {order}, {len(products)} monomials, PE MISMATCH")
+            for deg_str, info in matching.items():
+                if info['status'] != 'EXACT':
+                    print(f"    {info['status']} at degree {deg_str}: "
+                          f"monomials={info['monomials']}, "
+                          f"with_mult={info['with_multiplicity']}, PE={info['PE']}")
 
         return passed
 

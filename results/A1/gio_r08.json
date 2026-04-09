@@ -364,16 +364,18 @@
   },
   "matching_by_order": {
     "4": {
-      "(2,)": [
-        28,
-        28,
-        "EXACT"
-      ],
-      "(4,)": [
-        266,
-        336,
-        "OK"
-      ]
+      "(2,)": {
+        "monomials": 28,
+        "with_multiplicity": 28,
+        "PE": 28,
+        "status": "EXACT"
+      },
+      "(4,)": {
+        "monomials": 266,
+        "with_multiplicity": 336,
+        "PE": 336,
+        "status": "EXACT"
+      }
     }
   },
   "max_order_built": 4
