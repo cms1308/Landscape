@@ -275,6 +275,8 @@ class GIOCache:
         if required_order > self.max_order_built:
             if not self.build_and_validate(required_order):
                 return None
+            # Auto-save after building/extending
+            self.save(self.cache_path())
 
         # Get products at the required order
         products = self.products_by_order.get(required_order,
@@ -320,23 +322,82 @@ class GIOCache:
 
         return unique_ops
 
-    def summary(self):
-        """Return a summary dict for saving."""
-        return {
+    def save(self, path):
+        """Save full GIO cache to JSON file."""
+        data = {
             'lie_group': self.lie_group,
             'rep_names': self.rep_names,
-            'rep_fields': {k: v for k, v in self.rep_fields.items()},
+            'rep_fields': self.rep_fields,
             'dynkin_labels': self.dynkin_labels,
             'singlet_fields': self.singlet_fields,
-            'n_primitives': len(self.primitives) if self.primitives else 0,
-            'primitive_info': [
-                {'degree': d, 'sym_type': s, 'rep': r, 'n_monomials': len(m)}
+            'primitives': [
+                {'degree': d, 'sym_type': s, 'rep': r, 'monomials': m}
                 for d, s, r, m in (self.primitives or [])
             ],
-            'orders_built': list(self.products_by_order.keys()),
-            'products_per_order': {str(k): len(v) for k, v in self.products_by_order.items()},
-            'matching': self.matching_by_order,
+            'products_by_order': {str(k): v for k, v in self.products_by_order.items()},
+            'pe_counts_by_order': {
+                str(k): {str(deg): cnt for deg, cnt in v.items()}
+                for k, v in self.pe_counts_by_order.items()
+            },
+            'matching_by_order': self.matching_by_order,
+            'max_order_built': self.max_order_built,
         }
+        os.makedirs(os.path.dirname(path) if os.path.dirname(path) else '.', exist_ok=True)
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+        print(f"  GIO cache saved to {path}")
+
+    @classmethod
+    def load(cls, path):
+        """Load GIO cache from JSON file."""
+        with open(path) as f:
+            data = json.load(f)
+
+        cache = cls.__new__(cls)
+        cache.lie_group = data['lie_group']
+        cache.rep_names = data['rep_names']
+        cache.rep_fields = data['rep_fields']
+        cache.dynkin_labels = data['dynkin_labels']
+        cache.singlet_fields = data['singlet_fields']
+
+        cache.all_gauge_fields = []
+        for name in cache.rep_names:
+            cache.all_gauge_fields.extend(cache.rep_fields[name])
+
+        cache.pe_labels = []
+        cache.pe_mults = []
+        cache._label_to_idx = {}
+        for i, name in enumerate(cache.rep_names):
+            dl = tuple(cache.dynkin_labels[i])
+            if dl not in cache._label_to_idx:
+                cache._label_to_idx[dl] = len(cache.pe_labels)
+                cache.pe_labels.append(list(dl))
+                cache.pe_mults.append(0)
+            cache.pe_mults[cache._label_to_idx[dl]] += len(cache.rep_fields[name])
+
+        cache.primitives = [
+            (p['degree'], p['sym_type'], p['rep'], p['monomials'])
+            for p in data.get('primitives', [])
+        ]
+        cache.products_by_order = {
+            int(k): v for k, v in data.get('products_by_order', {}).items()
+        }
+        cache.pe_counts_by_order = {
+            int(k): {eval(deg): cnt for deg, cnt in v.items()}
+            for k, v in data.get('pe_counts_by_order', {}).items()
+        }
+        cache.matching_by_order = data.get('matching_by_order', {})
+        cache.max_order_built = data.get('max_order_built', 0)
+
+        print(f"  GIO cache loaded from {path} (max order {cache.max_order_built})")
+        return cache
+
+    def cache_path(self, base_dir='results'):
+        """Standard path for this cache file."""
+        matter_key = '_'.join(f"{n}{len(self.rep_fields[n])}" for n in self.rep_names)
+        singlet_key = f"_s{len(self.singlet_fields)}" if self.singlet_fields else ""
+        return os.path.join(base_dir, self.lie_group,
+                           f"gio_{matter_key}{singlet_key}.json")
 
 
 if __name__ == '__main__':
