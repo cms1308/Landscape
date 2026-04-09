@@ -22,7 +22,7 @@ _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 sys.path.insert(0, os.path.join(_dir, '..'))
 
-from invariants import find_single_rep_invariants, find_mixed_rep_invariants
+from invariants import find_single_rep_invariants, find_mixed_rep_invariants, find_all_invariants, get_contraction_type
 from hilbert import compute_hilbert_series
 
 
@@ -68,31 +68,59 @@ class GIOCache:
         self.max_order_built = 0
 
     def _find_primitives(self):
-        """Find primitive gauge invariants via invariants.py."""
+        """Find all primitive gauge invariants via tensor product decomposition.
+
+        Uses find_all_invariants to check all degree vectors up to max_degree.
+        For each degree vector with singlet count > 0, constructs explicit monomials.
+        """
         self.primitives = []
 
-        # Single-rep primitives
-        for i, name in enumerate(self.rep_names):
-            dl = self.dynkin_labels[i]
-            invs = find_single_rep_invariants(self.lie_group, dl, max_degree=8)
-            for degree, sym_type, mult in invs:
-                if sym_type == "alt":
-                    monos = ['*'.join(c) for c in combinations(self.rep_fields[name], degree)]
-                else:
-                    monos = ['*'.join(c) for c in combinations_with_replacement(self.rep_fields[name], degree)]
-                if monos:
-                    self.primitives.append((degree, sym_type, name, monos))
+        # Find all invariant structures (degree vectors with singlet in tensor product)
+        all_invs = find_all_invariants(self.lie_group, self.dynkin_labels, max_degree=8)
 
-        # Mixed-rep primitives (bilinear between different rep types)
-        mixed = find_mixed_rep_invariants(self.lie_group, self.dynkin_labels)
-        for i, j, mult in mixed:
-            if i == j:
-                continue
-            monos = [f"{fi}*{fj}"
-                     for fi in self.rep_fields[self.rep_names[i]]
-                     for fj in self.rep_fields[self.rep_names[j]]]
+        for degree_vec, tensor_mult in sorted(all_invs.items()):
+            total_deg = sum(degree_vec)
+
+            # Construct explicit monomials for this degree vector
+            # For each rep type i with degree_vec[i] copies:
+            #   - Get contraction type from single-rep invariants
+            #   - Generate selections from available fields
+            per_type_selections = []
+            for i, d in enumerate(degree_vec):
+                if d == 0:
+                    per_type_selections.append([()])
+                    continue
+                name = self.rep_names[i]
+                fields = self.rep_fields[name]
+                ct = get_contraction_type(self.lie_group, self.dynkin_labels[i])
+
+                if d == 1:
+                    # Single field from this type
+                    per_type_selections.append([(f,) for f in fields])
+                elif ct == "alt":
+                    per_type_selections.append(list(combinations(fields, d)))
+                elif ct == "sym":
+                    per_type_selections.append(list(combinations_with_replacement(fields, d)))
+                else:
+                    # No self-contraction (complex rep) or unknown
+                    # For complex reps with d >= 2: no self-invariant possible
+                    # But as part of a multi-rep invariant, any combination works
+                    per_type_selections.append(list(combinations_with_replacement(fields, d)))
+
+            # Cartesian product across types
+            monos = []
+            from itertools import product as iprod
+            for combo in iprod(*per_type_selections):
+                fields_in_mono = []
+                for selection in combo:
+                    fields_in_mono.extend(selection)
+                if fields_in_mono:
+                    monos.append('*'.join(fields_in_mono))
+
             if monos:
-                self.primitives.append((2, "mixed", f"{self.rep_names[i]}x{self.rep_names[j]}", monos))
+                desc = 'x'.join(f"{self.rep_names[i]}^{degree_vec[i]}"
+                                for i in range(len(degree_vec)) if degree_vec[i] > 0)
+                self.primitives.append((total_deg, "multi", desc, monos))
 
     def _get_all_primitive_monomials(self):
         """Return flat list of all primitive monomial strings."""
