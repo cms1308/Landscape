@@ -365,8 +365,9 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
     else:
         amax_results = []
 
-    # Collect consistent results
+    # Collect consistent results + GIO unitarity check
     results = []
+    n_decoupled = 0
     for cand, result in zip(candidates, amax_results):
         if result['consistency'] == 'consistent':
             result['matter'] = cand['matter']
@@ -381,9 +382,19 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
                                   if k not in ('consistency', 'a', 'c', 'matter', 'w',
                                               'repinfo', 'depth', 'parent', 'deform_type',
                                               'deform_op', 'description')}
+
+            # GIO unitarity check: before declaring consistent,
+            # verify no operator has R <= 2/3
+            op_check = get_theory_operators(group, result, all_reps)
+            if op_check is not None and op_check['has_unitarity_violation']:
+                result['consistency'] = 'operator decoupled'
+                n_decoupled += 1
+                continue
+
             results.append(result)
 
-    print(f"  {len(results)}/{len(candidates)} consistent")
+    print(f"  {len(results)}/{len(candidates)} consistent"
+          f"{f' ({n_decoupled} decoupled)' if n_decoupled else ''}")
     return results
 
 
