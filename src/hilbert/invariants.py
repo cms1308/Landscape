@@ -228,10 +228,15 @@ t = new_t
 
 
 def find_all_invariants(lie_group, dynkin_labels, max_degree=6):
-    """Find all gauge-invariant structures for combinations of rep types up to max_degree.
+    """Find which degree vectors have gauge-invariant structures (via tensor product).
 
-    Checks all degree vectors (n1, n2, ..., nk) with sum <= max_degree.
-    For each, uses LiE tensor product to count trivials.
+    For each degree vector (n1, n2, ..., nk) with sum <= max_degree,
+    checks if the raw tensor product R1^⊗n1 ⊗ ... ⊗ Rk^⊗nk contains a singlet.
+
+    NOTE: This gives an upper bound — the raw tensor product doesn't account for
+    identical-particle statistics. The actual PE count may be lower.
+    Use this to identify WHICH degree vectors have primitives, then validate
+    against PE for exact counts.
 
     Args:
         lie_group: LiE group name
@@ -239,7 +244,7 @@ def find_all_invariants(lie_group, dynkin_labels, max_degree=6):
         max_degree: max total degree to check
 
     Returns:
-        dict mapping degree_tuple -> multiplicity of trivial in tensor product
+        dict mapping degree_tuple -> multiplicity of trivial in raw tensor product
     """
     from itertools import product as iprod
     k = len(dynkin_labels)
@@ -251,8 +256,6 @@ def find_all_invariants(lie_group, dynkin_labels, max_degree=6):
         if total < 2 or total > max_degree:
             continue
 
-        # Build the list of rep labels for tensor product
-        # degree (n1, n2, ...) means n1 copies of R1, n2 copies of R2, ...
         rep_list = []
         for i, d in enumerate(degree):
             rep_list.extend([label_strs[i]] * d)

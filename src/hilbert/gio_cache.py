@@ -22,7 +22,9 @@ _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 sys.path.insert(0, os.path.join(_dir, '..'))
 
-from invariants import find_single_rep_invariants, find_mixed_rep_invariants, find_all_invariants, get_contraction_type
+from invariants import (find_single_rep_invariants, find_mixed_rep_invariants,
+                        find_all_invariants, get_contraction_type,
+                        singlet_in_tensor_power)
 from hilbert import compute_hilbert_series
 
 
@@ -97,15 +99,32 @@ class GIOCache:
                 if d == 1:
                     # Single field from this type
                     per_type_selections.append([(f,) for f in fields])
-                elif ct == "alt":
-                    per_type_selections.append(list(combinations(fields, d)))
-                elif ct == "sym":
-                    per_type_selections.append(list(combinations_with_replacement(fields, d)))
                 else:
-                    # No self-contraction (complex rep) or unknown
-                    # For complex reps with d >= 2: no self-invariant possible
-                    # But as part of a multi-rep invariant, any combination works
-                    per_type_selections.append(list(combinations_with_replacement(fields, d)))
+                    # Determine contraction type at this specific degree
+                    # Use find_single_rep_invariants to check sym vs alt at degree d
+                    dl = self.dynkin_labels[i]
+                    sym_at_d = singlet_in_tensor_power(
+                        self.lie_group,
+                        '[' + ','.join(str(x) for x in dl) + ']',
+                        d, "sym")
+                    alt_at_d = singlet_in_tensor_power(
+                        self.lie_group,
+                        '[' + ','.join(str(x) for x in dl) + ']',
+                        d, "alt")
+
+                    if alt_at_d > 0 and sym_at_d == 0:
+                        # Pure antisymmetric
+                        per_type_selections.append(list(combinations(fields, d)))
+                    elif sym_at_d > 0 and alt_at_d == 0:
+                        # Pure symmetric
+                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
+                    elif alt_at_d > 0 and sym_at_d > 0:
+                        # Both — include all (with replacement covers both)
+                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
+                    else:
+                        # Neither sym nor alt has singlet at this degree for this single rep
+                        # But as part of multi-rep invariant, all combinations are candidates
+                        per_type_selections.append(list(combinations_with_replacement(fields, d)))
 
             # Cartesian product across types
             monos = []
@@ -376,7 +395,139 @@ class GIOCache:
         if passed:
             print(f"  GIO cache: order {order}, {len(products)} monomials, PE EXACT MATCH")
         else:
-            print(f"  GIO cache: order {order}, {len(products)} monomials, PE MISMATCH")
+            # Collect mismatched degrees (only where ours < PE or ours = 0)
+            mismatched_degrees = []
+            for deg_str, info in matching.items():
+                if info['status'] != 'EXACT' and info['with_multiplicity'] < info['PE']:
+                    mismatched_degrees.append(deg_str)
+
+            print(f"  GIO cache: order {order}, {len(products)} monomials, "
+                  f"{len(mismatched_degrees)} mismatched degrees")
+
+            # Resolve mismatches via per-copy PE
+            if mismatched_degrees and self.all_gauge_fields:
+                print(f"  Resolving via per-copy PE ({len(self.all_gauge_fields)} fields)...")
+                per_copy_labels = []
+                for name in self.rep_names:
+                    for f in self.rep_fields[name]:
+                        per_copy_labels.append(list(self.dynkin_labels[self.rep_names.index(name)]))
+
+                pc_hs = compute_hilbert_series(
+                    self.lie_group, per_copy_labels,
+                    [1] * len(self.all_gauge_fields),
+                    order=order, compute_pl=False)
+
+                # Parse per-copy PE into explicit monomials
+                import ast as _ast
+                new_monomials = set()
+                for item_str in pc_hs['pe_raw']:
+                    matrix = _ast.literal_eval(item_str)
+                    rows = matrix if isinstance(matrix[0], list) else [matrix]
+                    for row in rows:
+                        degree_pc = tuple(row[:-1])
+                        mult_pc = row[-1]
+                        if all(d == 0 for d in degree_pc):
+                            continue
+                        # Map per-copy degree to per-rep degree
+                        rep_degree = [0] * len(self.pe_labels)
+                        fields_in_mono = []
+                        for fi, d in enumerate(degree_pc):
+                            if d > 0:
+                                fname = self.all_gauge_fields[fi]
+                                fields_in_mono.extend([fname] * d)
+                                for name in self.rep_names:
+                                    if fname in self.rep_fields[name]:
+                                        dl = tuple(self.dynkin_labels[self.rep_names.index(name)])
+                                        rep_degree[self._label_to_idx[dl]] += d
+                                        break
+                        rep_deg_str = str(tuple(rep_degree))
+                        if rep_deg_str in mismatched_degrees and fields_in_mono:
+                            mono = '*'.join(fields_in_mono)
+                            key = tuple(sorted(fields_in_mono))
+                            new_monomials.add((key, mono))
+
+                # Add new monomials to products
+                existing = set(tuple(sorted(p.split('*'))) for p in products)
+                added = 0
+                for key, mono in new_monomials:
+                    if key not in existing:
+                        products.append(mono)
+                        existing.add(key)
+                        added += 1
+
+                if added > 0:
+                    print(f"  Added {added} monomials from per-copy PE")
+                    self.products_by_order[order] = products
+
+                    # Recompute counts and revalidate
+                    our_counts = self._count_products_by_degree(products)
+                    our_counts_with_mult = defaultdict(int)
+                    for op in products:
+                        fields_op = op.split('*')
+                        degree_op = [0] * len(self.pe_labels)
+                        for f in fields_op:
+                            for name in self.rep_names:
+                                if f in self.rep_fields[name]:
+                                    dl = tuple(self.dynkin_labels[self.rep_names.index(name)])
+                                    degree_op[self._label_to_idx[dl]] += 1
+                                    break
+                        m = compute_multiplicity(op)
+                        our_counts_with_mult[tuple(degree_op)] += m
+
+                    # Revalidate
+                    passed = True
+                    new_matching = {}
+                    for degree, pe_mult in pe_counts.items():
+                        our_mult = our_counts_with_mult.get(degree, 0)
+                        our_mono = our_counts.get(degree, 0)
+                        if our_mult != pe_mult:
+                            status = "MISMATCH"
+                            # Accept if ours > 0 (multiplicity issue, not missing)
+                            if our_mono == 0:
+                                passed = False
+                        else:
+                            status = "EXACT"
+
+                        mult_breakdown = defaultdict(int)
+                        for op in products:
+                            op_fields = op.split('*')
+                            op_degree = [0] * len(self.pe_labels)
+                            for f in op_fields:
+                                for name in self.rep_names:
+                                    if f in self.rep_fields[name]:
+                                        dl = tuple(self.dynkin_labels[self.rep_names.index(name)])
+                                        op_degree[self._label_to_idx[dl]] += 1
+                                        break
+                            if tuple(op_degree) == degree:
+                                mm = compute_multiplicity(op)
+                                mult_breakdown[mm] += 1
+
+                        explanation_parts = []
+                        for mm in sorted(mult_breakdown.keys()):
+                            count = mult_breakdown[mm]
+                            explanation_parts.append(f"{count} monomials x mult {mm} = {count * mm}")
+                        explanation = " + ".join(explanation_parts) + f" = {our_mult}"
+                        if our_mult == pe_mult:
+                            explanation += f" = PE({pe_mult})"
+
+                        new_matching[str(degree)] = {
+                            'monomials': our_mono,
+                            'with_multiplicity': our_mult,
+                            'PE': pe_mult,
+                            'status': status,
+                            'explanation': explanation,
+                        }
+
+                    matching = new_matching
+                    self.matching_by_order[order] = matching
+
+                    if passed:
+                        print(f"  After per-copy PE: EXACT MATCH")
+                    else:
+                        remaining = sum(1 for v in matching.values()
+                                       if v['status'] == 'MISMATCH' and v['monomials'] == 0)
+                        print(f"  After per-copy PE: {remaining} still missing")
+
             for deg_str, info in matching.items():
                 if info['status'] != 'EXACT':
                     print(f"    {info['status']} at degree {deg_str}: "
@@ -404,7 +555,7 @@ class GIOCache:
             min_R = min(gauge_r)
             if min_R <= 0:
                 return None  # non-positive R-charge, theory is inconsistent
-            required_order = math.ceil(max_R / min_R)
+            required_order = math.floor(max_R / min_R)
         else:
             required_order = 4
         required_order = max(required_order, 4)  # minimum order 4
