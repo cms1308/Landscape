@@ -18,16 +18,13 @@ import subprocess
 import sys
 import os
 import time
-import ast
 import multiprocessing as mp
 from fractions import Fraction
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from hilbert.hilbert import compute_hilbert_series
-from hilbert.orbits import compute_orbits, orbits_to_pe_input
-from hilbert.invariants import get_contraction_type
-from hilbert.monomials import generate_all_operators
-from deform.equivalence import deduplicate_theories
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'hilbert'))
+from deform.equivalence import deduplicate_theories, deduplicate_operators
+from gio_cache import GIOCache
 
 AMAX_PATH = "src/amax/FindCharges.wl"
 REDUCE_PATH = "src/amax/ReduceOperators.wl"
@@ -145,8 +142,11 @@ def parse_float(s):
     return float(s.split('`')[0])
 
 
-def get_theory_operators(group, theory, all_reps, hs_order=6):
-    """Full operator enumeration for a theory using orbit-aware PE.
+def get_theory_operators(group, theory, all_reps, gio_cache=None):
+    """Full operator enumeration using GIO cache + F-term reduction + dedup.
+
+    Uses cached primitives+products with PE validation.
+    Dynamic order based on min R-charge.
 
     Returns:
         dict with 'relevant', 'flippable', 'has_unitarity_violation', or None on failure
@@ -156,141 +156,115 @@ def get_theory_operators(group, theory, all_reps, hs_order=6):
     rcharges_raw = theory.get('rcharges', {})
     stored_repinfo = theory.get('repinfo', [])
 
-    # Parse R-charges and build field lists using repinfo names
+    # Build field lists, R-charges, and GIO cache if not provided
     r_charges = {}
     all_fields = []
-    rep_type_to_dynkin = {}
-    singlet_prefixes = set()
+    singlet_fields = []
+    rep_fields = {}  # name -> [field_names]
+    dynkin_labels_list = []
 
-    # Build from stored repinfo if available (preserves naming like M0, r0, etc.)
     if stored_repinfo:
         for ri_idx, (name, T_R, dim_r, n) in enumerate(stored_repinfo):
             is_singlet = (str(T_R) == '0' and dim_r == 1)
-            if is_singlet:
-                singlet_prefixes.add(name)
+            dl = None
+            for midx, (label, mn, reality, md) in enumerate(matter):
+                if f"r{midx}" == name or name == f"r{midx}b":
+                    dl = label; break
+                if is_singlet and all(x == 0 for x in label):
+                    dl = label; break
+            if dl is None:
+                dl = [0]
+
+            field_names = []
             for copy in range(1, n + 1):
                 fname = f"{name}{copy}"
                 all_fields.append(fname)
                 rk = rcharges_raw.get(fname)
                 r_charges[fname] = parse_float(rk) if rk else 0.5
-            # Find Dynkin label from matter
-            # Match repinfo to matter: repinfo may have more entries (R + Rbar for complex)
-            dl = None
-            for midx, (label, mn, reality, md) in enumerate(matter):
-                if f"r{midx}" == name or name == f"r{midx}b":
-                    dl = label
-                    break
-                # Also check singlet names like M0, M1, etc.
-                if is_singlet and all(x == 0 for x in label):
-                    dl = label
-                    break
-            if dl is None:
-                dl = [0]  # fallback: singlet
-            rep_type_to_dynkin[name] = dl
+                if is_singlet:
+                    singlet_fields.append(fname)
+                else:
+                    field_names.append(fname)
+            if field_names:
+                rep_fields[name] = field_names
+                dynkin_labels_list.append(dl)
     else:
-        # Build from matter (depth 0 seeds)
         for midx, (label, n, reality, dim_r) in enumerate(matter):
             rep_type = f"r{midx}"
-            T_R_data = None
-            for r in all_reps[group]['reps']:
-                if tuple(r['dynkin_label']) == tuple(label):
-                    T_R_data = r['T_R']
-                    break
-            if T_R_data is None and all(x == 0 for x in label):
-                T_R_data = '0'
-                singlet_prefixes.add(rep_type)
-
+            is_singlet = all(x == 0 for x in label)
             if reality == 'complex':
-                for copy in range(1, n + 1):
-                    fname = f"{rep_type}{copy}"
-                    all_fields.append(fname)
-                    rk = rcharges_raw.get(fname)
-                    r_charges[fname] = parse_float(rk) if rk else 0.5
-                rep_type_to_dynkin[rep_type] = label
-                rep_type_b = f"r{midx}b"
                 conj_label = label
                 for r in all_reps[group]['reps']:
                     if tuple(r['dynkin_label']) == tuple(label) and r.get('contragr'):
-                        conj_label = r['contragr']
-                        break
+                        conj_label = r['contragr']; break
+                fnames = []
                 for copy in range(1, n + 1):
-                    fname = f"{rep_type_b}{copy}"
-                    all_fields.append(fname)
+                    fname = f"{rep_type}{copy}"
+                    all_fields.append(fname); fnames.append(fname)
                     rk = rcharges_raw.get(fname)
                     r_charges[fname] = parse_float(rk) if rk else 0.5
-                rep_type_to_dynkin[rep_type_b] = conj_label
+                rep_fields[rep_type] = fnames
+                dynkin_labels_list.append(label)
+                fnames_b = []
+                for copy in range(1, n + 1):
+                    fname = f"r{midx}b{copy}"
+                    all_fields.append(fname); fnames_b.append(fname)
+                    rk = rcharges_raw.get(fname)
+                    r_charges[fname] = parse_float(rk) if rk else 0.5
+                rep_fields[f"r{midx}b"] = fnames_b
+                dynkin_labels_list.append(conj_label)
             else:
-                is_singlet = all(x == 0 for x in label)
-                if is_singlet:
-                    singlet_prefixes.add(rep_type)
+                fnames = []
                 for copy in range(1, n + 1):
                     fname = f"{rep_type}{copy}"
                     all_fields.append(fname)
                     rk = rcharges_raw.get(fname)
                     r_charges[fname] = parse_float(rk) if rk else 0.5
-                rep_type_to_dynkin[rep_type] = label
+                    if is_singlet:
+                        singlet_fields.append(fname)
+                    else:
+                        fnames.append(fname)
+                if fnames:
+                    rep_fields[rep_type] = fnames
+                    dynkin_labels_list.append(label)
 
-    # 1. Orbit decomposition
-    orbits = compute_orbits(all_fields, w, singlet_prefixes=singlet_prefixes)
+    # 1. Build or reuse GIO cache
+    if gio_cache is None:
+        gio_cache = GIOCache(group, rep_fields, dynkin_labels_list, singlet_fields)
 
-    # 2. Orbit-aware PE
-    pe_labels, pe_mults, pe_oidx = orbits_to_pe_input(orbits, rep_type_to_dynkin)
+    # 2. Get operators (auto-extends order if needed, validates against PE)
+    mono_strs = gio_cache.get_operators(r_charges, max_R=2.0, w_terms=w)
+    if mono_strs is None:
+        print("  GIO cache PE validation FAILED — stopping")
+        return None
 
-    if not pe_labels:
-        # All singlets — no gauge-charged fields
-        pe_degrees = []
-    else:
-        hs = compute_hilbert_series(group, pe_labels, pe_mults, order=hs_order, compute_pl=False)
-        pe_degrees = []
-        for item_str in hs['pe_raw']:
-            matrix = ast.literal_eval(item_str)
-            rows = matrix if isinstance(matrix[0], list) else [matrix]
-            for row in rows:
-                pe_degrees.append((tuple(row[:-1]), row[-1]))
-
-    # 3. Build orbit info for monomial expansion
-    gauge_orbits = []
-    for pi, oi in enumerate(pe_oidx):
-        o = orbits[oi]
-        dl = rep_type_to_dynkin.get(o['rep_type'], [0])
-        ct = get_contraction_type(group, dl) if not o['is_singlet'] else 'any'
-        gauge_orbits.append({
-            'fields': o['fields'],
-            'rep_idx': pi,
-            'contraction': ct,
-            'is_singlet': False,
-        })
-
-    singlet_fields = [f for o in orbits if o['is_singlet'] for f in o['fields']]
-
-    # 4. Generate monomials (before F-term)
-    ops = generate_all_operators(gauge_orbits, pe_degrees, {}, r_charges,
-                                 singlet_fields=singlet_fields, max_R=2.0)
-
-    if not ops and not singlet_fields:
-        return {'relevant': [], 'flippable': [], 'has_unitarity_violation': False}
-
-    # 5. F-term reduction via Mathematica
-    mono_strs = [op['monomial'] for op in ops]
     if not mono_strs:
-        return {'relevant': [], 'flippable': [], 'has_unitarity_violation': False}
+        return {'relevant': [], 'flippable': [], 'has_unitarity_violation': False,
+                'gio_cache': gio_cache}
 
+    # 3. F-term reduction via Mathematica
     reduced = run_reduce_operators(mono_strs, all_fields, w, r_charges)
     if reduced is None:
         return None
 
+    # 4. Dedup operators via toGlobalGraph(W + [op])
+    relevant_deduped = deduplicate_operators(reduced['relevant'], w)
+    flippable_deduped = deduplicate_operators(reduced['flippable'], w)
+
     has_viol = reduced['n_unitarity_violating'] > 0
 
     return {
-        'relevant': reduced['relevant'],
-        'flippable': reduced['flippable'],
+        'relevant': relevant_deduped,
+        'flippable': flippable_deduped,
         'has_unitarity_violation': has_viol,
-        'n_relevant': reduced['n_relevant'],
-        'n_flippable': reduced['n_flippable'],
+        'n_relevant': len(relevant_deduped),
+        'n_flippable': len(flippable_deduped),
+        'n_relevant_before_dedup': reduced['n_relevant'],
+        'gio_cache': gio_cache,
     }
 
 
-def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=6):
+def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
     """Process one depth level: generate candidates at depth+1."""
     if depth >= max_depth:
         return []
@@ -302,8 +276,8 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5, hs_order=
         if theory.get('consistency', 'consistent') != 'consistent':
             continue
 
-        # Get operators via orbit-aware PE + F-term reduction
-        op_result = get_theory_operators(group, theory, all_reps, hs_order)
+        # Get operators via GIO cache + F-term reduction
+        op_result = get_theory_operators(group, theory, all_reps)
         if op_result is None:
             continue
 
@@ -451,7 +425,7 @@ if __name__ == '__main__':
 
         next_theories = iterate_depth(
             group, current_depth_theories, all_reps, d,
-            max_depth=max_depth, hs_order=6
+            max_depth=max_depth
         )
 
         print(f"  Depth {d+1}: {len(next_theories)} consistent theories")
