@@ -30,6 +30,14 @@ AMAX_PATH = "src/amax/FindCharges.wl"
 REDUCE_PATH = "src/amax/ReduceOperators.wl"
 
 
+def theory_fingerprint(t):
+    """(a, c, sorted R-charges) at full 30-digit precision."""
+    a = t.get('a', '').split('`')[0]
+    c = t.get('c', '').split('`')[0]
+    rcs = sorted(v.split('`')[0] for v in t.get('rcharges', {}).values())
+    return (a, c, tuple(rcs))
+
+
 def _amax_worker(args):
     """Worker function for parallel a-maximization."""
     dimG_, Tadj_, repinfo_, w_ = args
@@ -402,26 +410,7 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
 
     print(f"  {len(results)}/{len(candidates)} consistent"
           f"{f' ({n_decoupled} decoupled)' if n_decoupled else ''}")
-
-    # Deduplicate by (a, c, sorted R-charges) — same SCFT reached by different paths
-    def theory_fingerprint(t):
-        a = t['a'].split('`')[0]
-        c = t['c'].split('`')[0]
-        rcs = sorted(v.split('`')[0] for v in t.get('rcharges', {}).values())
-        return (a, c, tuple(rcs))
-
-    seen_fp = {}
-    unique_results = []
-    for t in results:
-        fp = theory_fingerprint(t)
-        if fp not in seen_fp:
-            seen_fp[fp] = t
-            unique_results.append(t)
-
-    if len(unique_results) < len(results):
-        print(f"  {len(unique_results)}/{len(results)} unique by (a,c,R-charges)")
-
-    return unique_results
+    return results
 
 
 if __name__ == '__main__':
@@ -454,6 +443,13 @@ if __name__ == '__main__':
         current_depth_theories.append(theory)
 
     all_theories = list(current_depth_theories)
+
+    # Global fingerprint set: tracks all SCFTs seen across ALL depths
+    all_fingerprints = set()
+    for t in current_depth_theories:
+        fp = theory_fingerprint(t)
+        if fp != ('', '', ()):  # skip seeds without a-max data
+            all_fingerprints.add(fp)
 
     # Result directory
     seed_key = all_seeds[0]['description'].replace(' ', '_').replace('+', '_')
@@ -497,12 +493,24 @@ if __name__ == '__main__':
             max_depth=max_depth
         )
 
-        print(f"  Depth {d+1}: {len(next_theories)} consistent theories")
-        all_theories.extend(next_theories)
-        current_depth_theories = next_theories
+        # Cross-depth dedup: remove theories whose fingerprint exists at depth 0..d
+        new_theories = []
+        for t in next_theories:
+            fp = theory_fingerprint(t)
+            if fp not in all_fingerprints:
+                all_fingerprints.add(fp)
+                new_theories.append(t)
+
+        if len(new_theories) < len(next_theories):
+            print(f"  {len(new_theories)}/{len(next_theories)} new "
+                  f"(removed {len(next_theories) - len(new_theories)} cross-depth duplicates)")
+
+        print(f"  Depth {d+1}: {len(new_theories)} theories")
+        all_theories.extend(new_theories)
+        current_depth_theories = new_theories
 
         # Save immediately after each depth
-        save_depth(next_theories, d + 1,
+        save_depth(new_theories, d + 1,
                    os.path.join(result_dir, f'depth{d+1}.json'))
 
     print(f"\nTotal: {len(all_theories)} theories (depth 0 to {max_depth})")
