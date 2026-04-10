@@ -402,7 +402,26 @@ def iterate_depth(group, seeds_at_depth, all_reps, depth, max_depth=5):
 
     print(f"  {len(results)}/{len(candidates)} consistent"
           f"{f' ({n_decoupled} decoupled)' if n_decoupled else ''}")
-    return results
+
+    # Deduplicate by (a, c, sorted R-charges) — same SCFT reached by different paths
+    def theory_fingerprint(t):
+        a = t['a'].split('`')[0]
+        c = t['c'].split('`')[0]
+        rcs = sorted(v.split('`')[0] for v in t.get('rcharges', {}).values())
+        return (a, c, tuple(rcs))
+
+    seen_fp = {}
+    unique_results = []
+    for t in results:
+        fp = theory_fingerprint(t)
+        if fp not in seen_fp:
+            seen_fp[fp] = t
+            unique_results.append(t)
+
+    if len(unique_results) < len(results):
+        print(f"  {len(unique_results)}/{len(results)} unique by (a,c,R-charges)")
+
+    return unique_results
 
 
 if __name__ == '__main__':
@@ -436,6 +455,38 @@ if __name__ == '__main__':
 
     all_theories = list(current_depth_theories)
 
+    # Result directory
+    seed_key = all_seeds[0]['description'].replace(' ', '_').replace('+', '_')
+    result_dir = os.path.join('results', group, seed_key)
+    os.makedirs(result_dir, exist_ok=True)
+
+    # Save depth 0
+    def save_depth(theories, depth, path):
+        data = {
+            'group': group,
+            'depth': depth,
+            'n_theories': len(theories),
+            'theories': [
+                {
+                    'w': t.get('w', []),
+                    'a': t.get('a', ''),
+                    'c': t.get('c', ''),
+                    'rcharges': t.get('rcharges', {}),
+                    'deform_type': t.get('deform_type', ''),
+                    'deform_op': t.get('deform_op', ''),
+                    'parent': t.get('parent', ''),
+                    'description': t.get('description', ''),
+                }
+                for t in theories
+            ],
+        }
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+        print(f"  Saved to {path}")
+
+    save_depth(current_depth_theories, 0,
+               os.path.join(result_dir, 'depth0.json'))
+
     for d in range(max_depth):
         print(f"\n{'='*60}")
         print(f"  Processing depth {d} -> {d+1}")
@@ -449,6 +500,10 @@ if __name__ == '__main__':
         print(f"  Depth {d+1}: {len(next_theories)} consistent theories")
         all_theories.extend(next_theories)
         current_depth_theories = next_theories
+
+        # Save immediately after each depth
+        save_depth(next_theories, d + 1,
+                   os.path.join(result_dir, f'depth{d+1}.json'))
 
     print(f"\nTotal: {len(all_theories)} theories (depth 0 to {max_depth})")
     for d in range(max_depth + 1):
